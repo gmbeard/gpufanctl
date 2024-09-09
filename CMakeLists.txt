@@ -9,6 +9,12 @@ project(
     VERSION ${current_version}
 )
 
+option(
+    GPUFANCTL_ENABLE_TESTS
+    "Enable tests"
+    OFF
+)
+
 if (CMAKE_BUILD_TYPE STREQUAL "")
     message(STATUS "Defaulting CMAKE_BUILD_TYPE to Release")
     set(CMAKE_BUILD_TYPE "Release")
@@ -22,3 +28,8 @@ include(Dependencies)
 find_package(Exios REQUIRED)
 
 add_subdirectory(src)
+
+if(GPUFANCTL_ENABLE_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()

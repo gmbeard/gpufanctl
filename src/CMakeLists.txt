@@ -1,21 +1,43 @@
-add_executable(
-    gpufanctl
+add_library(
+    gpufanctl-core
+)
+
+add_library(
+    GpuFanCtl::gpufanctl
+    ALIAS
+    gpufanctl-core
+)
+
+target_sources(
+    gpufanctl-core
+    PRIVATE
 
     logging.cpp
-    main.cpp
     nvml.cpp
     signal.cpp
+    slope.cpp
 )
 
 target_include_directories(
+    gpufanctl-core
+    PUBLIC
+    "${CMAKE_CURRENT_LIST_DIR}"
+)
+
+add_executable(
+    gpufanctl
+)
+
+target_sources(
     gpufanctl
     PRIVATE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}:src>
+    main.cpp
 )
 
 target_link_libraries(
     gpufanctl
     PRIVATE
+    gpufanctl-core
     pthread
     Exios::exios
 )

@@ -6,7 +6,9 @@
 #include "scope_guard.hpp"
 #include "signal.hpp"
 #include "slope.hpp"
+#include "utils.hpp"
 #include <iostream>
+#include <iterator>
 #include <span>
 #include <vector>
 
@@ -25,19 +27,21 @@ auto reset_fans(nvmlDevice_t device, unsigned int fan_count) noexcept -> void
     }
 }
 
-auto get_fan_slopes() -> std::vector<gfc::FanSlope>
+auto get_fan_slopes() -> std::vector<gfc::Slope>
 {
-    std::initializer_list<std::pair<unsigned int, unsigned int>> const slopes {
-        std::make_pair(35, 30), std::make_pair(60, 50), std::make_pair(80, 100)
-    };
+    std::initializer_list<gfc::CurvePoint> const slopes { { 35, 30 },
+                                                          { 60, 50 },
+                                                          { 80, 100 } };
 
-    std::vector<gfc::FanSlope> result;
-    result.reserve(slopes.size());
+    std::vector<gfc::Slope> result;
+    result.reserve(slopes.size() ? slopes.size() - 1 : 0);
 
-    for (auto const& [temperature, fan_speed] : slopes) {
-        result.push_back(
-            { .temperature = temperature, .fan_speed = fan_speed });
-    }
+    gfc::transform_adjacent_pairs(slopes.begin(),
+                                  slopes.end(),
+                                  std::back_inserter(result),
+                                  [](auto const& first, auto const& second) {
+                                      return gfc::Slope { first, second };
+                                  });
 
     return result;
 }
@@ -86,7 +90,7 @@ auto app() -> void
 
     gfc::curve(device,
                fan_count,
-               std::span<gfc::FanSlope const> { slopes.data(), slopes.size() },
+               std::span<gfc::Slope const> { slopes.data(), slopes.size() },
                timer)
         .initiate();
 

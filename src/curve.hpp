@@ -55,35 +55,25 @@ struct Curve
             return 0;
         }
 
-        auto const slope_pos = std::lower_bound(
-            slopes.begin(),
-            slopes.end(),
-            current_temperature,
-            [&](auto const& a, auto const& b) { return a.temperature < b; });
+        auto const slope_pos =
+            std::lower_bound(slopes.begin(),
+                             slopes.end(),
+                             current_temperature,
+                             [&](auto const& a, auto const& b) {
+                                 return a.end().temperature < b;
+                             });
 
         if (slope_pos == slopes.end()) {
-            return slopes.back().fan_speed;
+            return slopes.back().end().fan_speed;
         }
 
-        auto const prev_slope_pos =
-            slope_pos == slopes.begin() ? slope_pos : std::next(slope_pos, -1);
-
-        auto const& prev_slope = *prev_slope_pos;
         auto const& slope = *slope_pos;
 
-        if (current_temperature < prev_slope.temperature) {
+        if (current_temperature < slope.start().temperature) {
             return 0;
         }
 
-        float const temperature_lerp =
-            static_cast<float>(current_temperature - prev_slope.temperature) /
-            static_cast<float>(slope.temperature - prev_slope.temperature);
-
-        float const fan_lerp =
-            static_cast<float>(slope.fan_speed - prev_slope.fan_speed) *
-            temperature_lerp;
-
-        return prev_slope.fan_speed + static_cast<unsigned int>(fan_lerp);
+        return slope(current_temperature);
     }
 
     auto set_fan_speed(unsigned int speed) -> void
@@ -100,7 +90,7 @@ struct Curve
 
     nvmlDevice_t device;
     std::size_t fan_count;
-    std::span<FanSlope const> slopes;
+    std::span<Slope const> slopes;
     Timer& timer;
     std::size_t interval_milliseconds { kDefaultIntervalMilliseconds };
 };
@@ -108,7 +98,7 @@ struct Curve
 template <typename Timer>
 auto curve(nvmlDevice_t device,
            std::size_t fan_count,
-           std::span<FanSlope const> slopes,
+           std::span<Slope const> slopes,
            Timer& timer,
            std::size_t interval = kDefaultIntervalMilliseconds)
     -> Curve<std::decay_t<Timer>>
