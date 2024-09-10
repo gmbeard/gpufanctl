@@ -12,10 +12,12 @@ target_sources(
     gpufanctl-core
     PRIVATE
 
+    errors.cpp
     logging.cpp
     nvml.cpp
     signal.cpp
     slope.cpp
+    validation.cpp
 )
 
 target_include_directories(

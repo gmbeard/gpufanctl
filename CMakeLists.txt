@@ -9,6 +9,9 @@ project(
     VERSION ${current_version}
 )
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_CXX_STANDARD 20)
+
 option(
     GPUFANCTL_ENABLE_TESTS
     "Enable tests"

@@ -7,6 +7,7 @@
 #include "signal.hpp"
 #include "slope.hpp"
 #include "utils.hpp"
+#include "validation.hpp"
 #include <iostream>
 #include <iterator>
 #include <span>
@@ -32,6 +33,11 @@ auto get_fan_slopes() -> std::vector<gfc::Slope>
     std::initializer_list<gfc::CurvePoint> const slopes { { 35, 30 },
                                                           { 60, 50 },
                                                           { 80, 100 } };
+
+    std::error_code ec;
+    if (!gfc::validate_curve_points({ &*slopes.begin(), slopes.size() }, ec)) {
+        throw std::system_error { ec };
+    }
 
     std::vector<gfc::Slope> result;
     result.reserve(slopes.size() ? slopes.size() - 1 : 0);

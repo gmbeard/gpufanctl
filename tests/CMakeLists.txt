@@ -8,3 +8,4 @@ add_library(testing OBJECT testing.cpp)
 #  ENABLE_IF flags
 
 make_test(NAME slope_tests SOURCES slope_tests.cpp LINK_LIBRARIES GpuFanCtl::gpufanctl)
+make_test(NAME validation_tests SOURCES validation_tests.cpp LINK_LIBRARIES GpuFanCtl::gpufanctl)
