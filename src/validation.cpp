@@ -39,6 +39,15 @@ namespace gfc
 auto validate_curve_points(std::span<CurvePoint const> points,
                            std::error_code& ec) noexcept -> bool
 {
+    if (!points.size()) {
+        return true;
+    }
+
+    if (points.size() < 2) {
+        ec = make_error_code(ErrorCodes::too_few_curve_points);
+        return false;
+    }
+
     ec = std::error_code {};
     for_each_adjacent_pair(points.begin(),
                            points.end(),

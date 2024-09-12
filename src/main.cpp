@@ -8,6 +8,7 @@
 #include "scope_guard.hpp"
 #include "signal.hpp"
 #include "slope.hpp"
+#include <cstddef>
 #include <iostream>
 #include <span>
 #include <vector>
@@ -28,18 +29,11 @@ auto reset_fans(nvmlDevice_t device, unsigned int fan_count) noexcept -> void
     }
 }
 
-auto get_fan_slopes() -> std::vector<gfc::Slope>
-{
-    std::string_view input = "35:30,60:50,80:100";
-    return gfc::parse_curve(input);
-}
-
-auto app() -> void
+auto app(std::span<char const*> args) -> void
 {
     using namespace std::chrono_literals;
 
-    auto const slopes = get_fan_slopes();
-    exios::ContextThread ctx;
+    auto const slopes = gfc::parse_curve(args.size() ? args[0] : "");
 
     gfc::nvml::init();
     GFC_SCOPE_GUARD([&] { gfc::nvml::shutdown(); });
@@ -69,6 +63,7 @@ auto app() -> void
 
     GFC_SCOPE_GUARD([&] { reset_fans(device, fan_count); });
 
+    exios::ContextThread ctx;
     exios::Timer timer { ctx };
     exios::Signal signal { ctx, SIGINT };
 
@@ -101,11 +96,12 @@ auto app() -> void
  * Argument is a comma separated list of temp./speed pairs, in the format of
  * `<TEMP>:<SPEED>`. E.g. 35:30,60:70
  */
-auto main() -> int
+auto main(int argc, char const** argv) -> int
 {
     try {
         gfc::block_signals({ SIGINT });
-        app();
+        app(std::span<char const*> { argv + 1,
+                                     static_cast<std::size_t>(argc - 1) });
     }
     catch (std::exception const& e) {
         std::cerr << "[ERROR] " << e.what() << '\n';

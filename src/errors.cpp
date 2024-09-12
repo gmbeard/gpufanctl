@@ -19,6 +19,8 @@ auto ErrorCategory::message(int condition) const -> std::string
         return "Incorrect temperature order";
     case ErrorCodes::invalid_curve_point:
         return "Invalid curve point";
+    case ErrorCodes::too_few_curve_points:
+        return "Too few curve points. At least two required";
     }
 
     return "Unknown";

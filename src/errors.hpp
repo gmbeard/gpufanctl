@@ -12,7 +12,8 @@ enum class ErrorCodes : int
     negative_fan_curve = 1,
     duplicate_temperature,
     temperature_order,
-    invalid_curve_point
+    invalid_curve_point,
+    too_few_curve_points
 };
 
 struct ErrorCategory : std::error_category

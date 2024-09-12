@@ -45,7 +45,7 @@ auto should_parse_curve_point_pairs() -> void
     EXPECT(parse_curve_point(input, curve_point, ec));
 }
 
-auto should_parse_curve() -> void
+auto should_parse_curve_spec() -> void
 {
     std::string_view const input = " 35:30, 60:50, 80:100";
     auto curve = gfc::parse_curve(input);
@@ -63,9 +63,16 @@ auto should_parse_curve() -> void
     EXPECT(curve[1].end().fan_speed == 100);
 }
 
+auto should_parse_empty_curve_spec() -> void
+{
+    auto curve = gfc::parse_curve("");
+    EXPECT(curve.size() == 0);
+}
+
 auto main() -> int
 {
     return testing::run({ TEST(should_parse_curve_point_pairs),
                           TEST(should_split_string),
-                          TEST(should_parse_curve) });
+                          TEST(should_parse_curve_spec),
+                          TEST(should_parse_empty_curve_spec) });
 }
