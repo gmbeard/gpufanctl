@@ -16,7 +16,9 @@ auto ErrorCategory::message(int condition) const -> std::string
     case ErrorCodes::duplicate_temperature:
         return "Duplicate temperature point";
     case ErrorCodes::temperature_order:
-        return "Temperature ordering";
+        return "Incorrect temperature order";
+    case ErrorCodes::invalid_curve_point:
+        return "Invalid curve point";
     }
 
     return "Unknown";

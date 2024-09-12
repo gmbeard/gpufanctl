@@ -1,6 +1,9 @@
 #ifndef GPUFANCTL_SLOPE_HPP_INCLUDED
 #define GPUFANCTL_SLOPE_HPP_INCLUDED
 
+#include <string_view>
+#include <system_error>
+
 namespace gfc
 {
 

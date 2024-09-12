@@ -1,20 +1,20 @@
 #include "curve.hpp"
 #include "exios/exios.hpp"
+#include "interval.hpp"
 #include "logging.hpp"
 #include "nvml.h"
 #include "nvml.hpp"
+#include "parsing.hpp"
 #include "scope_guard.hpp"
 #include "signal.hpp"
 #include "slope.hpp"
-#include "utils.hpp"
-#include "validation.hpp"
 #include <iostream>
-#include <iterator>
 #include <span>
 #include <vector>
 
 auto reset_fans(nvmlDevice_t device, unsigned int fan_count) noexcept -> void
 {
+    gfc::log(gfc::LogLevel::info, "Resetting fans to default state");
     for (unsigned int i = 0; i < fan_count; ++i) {
         try {
             gfc::nvml::set_device_default_fan_speed(device, i);
@@ -30,26 +30,8 @@ auto reset_fans(nvmlDevice_t device, unsigned int fan_count) noexcept -> void
 
 auto get_fan_slopes() -> std::vector<gfc::Slope>
 {
-    std::initializer_list<gfc::CurvePoint> const slopes { { 35, 30 },
-                                                          { 60, 50 },
-                                                          { 80, 100 } };
-
-    std::error_code ec;
-    if (!gfc::validate_curve_points({ &*slopes.begin(), slopes.size() }, ec)) {
-        throw std::system_error { ec };
-    }
-
-    std::vector<gfc::Slope> result;
-    result.reserve(slopes.size() ? slopes.size() - 1 : 0);
-
-    gfc::transform_adjacent_pairs(slopes.begin(),
-                                  slopes.end(),
-                                  std::back_inserter(result),
-                                  [](auto const& first, auto const& second) {
-                                      return gfc::Slope { first, second };
-                                  });
-
-    return result;
+    std::string_view input = "35:30,60:50,80:100";
+    return gfc::parse_curve(input);
 }
 
 auto app() -> void
@@ -89,23 +71,36 @@ auto app() -> void
 
     exios::Timer timer { ctx };
     exios::Signal signal { ctx, SIGINT };
+
     signal.wait([&](auto) {
         gfc::log(gfc::LogLevel::info, "SIGINT received. Stopping");
         timer.cancel();
     });
 
-    gfc::curve(device,
-               fan_count,
-               std::span<gfc::Slope const> { slopes.data(), slopes.size() },
-               timer)
-        .initiate();
+    gfc::set_interval(
+        ctx,
+        timer,
+        std::chrono::milliseconds(gfc::kDefaultIntervalMilliseconds),
+        gfc::curve(
+            device,
+            fan_count,
+            std::span<gfc::Slope const> { slopes.data(), slopes.size() }),
+        [&](exios::TimerOrEventIoResult result) {
+            if (!result && result.error() != std::errc::operation_canceled) {
+                auto msg = result.error().message();
+                gfc::log(gfc::LogLevel::error,
+                         "Curve interval error: %s",
+                         msg.c_str());
+                signal.cancel();
+            }
+        });
 
     static_cast<void>(ctx.run());
 }
 
 /*
- * Arguments are a space separated list of speed/temp. pairs, in the format of
- * `<SPEED>%@<TEMP>C`. E.g. 70%@60C
+ * Argument is a comma separated list of temp./speed pairs, in the format of
+ * `<TEMP>:<SPEED>`. E.g. 35:30,60:70
  */
 auto main() -> int
 {

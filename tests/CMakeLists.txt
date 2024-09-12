@@ -9,3 +9,4 @@ add_library(testing OBJECT testing.cpp)
 
 make_test(NAME slope_tests SOURCES slope_tests.cpp LINK_LIBRARIES GpuFanCtl::gpufanctl)
 make_test(NAME validation_tests SOURCES validation_tests.cpp LINK_LIBRARIES GpuFanCtl::gpufanctl)
+make_test(NAME curve_parsing_tests SOURCES curve_parsing_tests.cpp LINK_LIBRARIES GpuFanCtl::gpufanctl)

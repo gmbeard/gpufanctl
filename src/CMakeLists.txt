@@ -12,9 +12,11 @@ target_sources(
     gpufanctl-core
     PRIVATE
 
+    curve.cpp
     errors.cpp
     logging.cpp
     nvml.cpp
+    parsing.cpp
     signal.cpp
     slope.cpp
     validation.cpp

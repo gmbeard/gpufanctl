@@ -26,4 +26,5 @@ auto Slope::operator()(unsigned int input_temperature) const noexcept
     return static_cast<unsigned int>(slope_value_ * input_temperature +
                                      y_intersect_);
 }
+
 } // namespace gfc
