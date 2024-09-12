@@ -78,7 +78,6 @@ auto app() -> void
     });
 
     gfc::set_interval(
-        ctx,
         timer,
         std::chrono::milliseconds(gfc::kDefaultIntervalMilliseconds),
         gfc::curve(

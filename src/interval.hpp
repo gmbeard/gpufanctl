@@ -33,7 +33,6 @@ struct Interval
         set_timeout(interval_duration);
     }
 
-    exios::Context ctx;
     exios::Timer& timer;
     std::chrono::duration<Rep, Period> interval_duration;
     F interval;
@@ -41,14 +40,12 @@ struct Interval
 };
 
 template <typename Rep, typename Period, typename F, typename Completion>
-auto set_interval(exios::Context ctx,
-                  exios::Timer& timer,
+auto set_interval(exios::Timer& timer,
                   std::chrono::duration<Rep, Period> interval_duration,
                   F&& interval,
                   Completion&& completion)
 {
-    Interval { ctx,
-               timer,
+    Interval { timer,
                interval_duration,
                std::forward<F>(interval),
                std::forward<Completion>(completion) }
