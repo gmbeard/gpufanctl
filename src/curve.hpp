@@ -4,6 +4,7 @@
 #include "nvml.h"
 #include "slope.hpp"
 #include <cstddef>
+#include <limits>
 #include <span>
 
 namespace gfc
@@ -22,6 +23,9 @@ struct Curve
     nvmlDevice_t device;
     std::size_t fan_count;
     std::span<Slope const> slopes;
+    unsigned int previous_fan_speed {
+        std::numeric_limits<unsigned int>::max()
+    };
 };
 
 auto curve(nvmlDevice_t device,

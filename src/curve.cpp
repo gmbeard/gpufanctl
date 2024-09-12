@@ -12,12 +12,19 @@ auto Curve::operator()() -> void
 
     auto const target_fan_speed = get_target_fan_speed(current_temperature);
 
-    log(LogLevel::debug,
-        "Current temp. %u -> Target fan speed %u",
-        current_temperature,
-        target_fan_speed);
+    if (target_fan_speed != previous_fan_speed) {
+        log(LogLevel::debug,
+            "Current temp. %u -> Target fan speed %u",
+            current_temperature,
+            target_fan_speed);
 
-    set_fan_speed(target_fan_speed);
+        set_fan_speed(target_fan_speed);
+    }
+    else {
+        log(LogLevel::debug, "No fan speed change");
+    }
+
+    previous_fan_speed = target_fan_speed;
 }
 
 auto Curve::get_target_fan_speed(unsigned int current_temperature)
