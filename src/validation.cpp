@@ -49,11 +49,19 @@ auto validate_curve_points(std::span<CurvePoint const> points,
     }
 
     ec = std::error_code {};
-    for_each_adjacent_pair(points.begin(),
-                           points.end(),
-                           [&](auto const& first, auto const& second) {
-                               validate_slope(first, second, ec);
-                           });
+    for_each_adjacent_pair(
+        points.begin(),
+        points.end(),
+        [&](auto const& first, auto const& second) {
+            if (ec) {
+                return;
+            }
+            if (first.fan_speed > 100 || second.fan_speed > 100) {
+                ec = make_error_code(ErrorCodes::invalid_fan_speed);
+                return;
+            }
+            validate_slope(first, second, ec);
+        });
 
     return !ec;
 }
