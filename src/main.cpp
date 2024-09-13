@@ -5,6 +5,7 @@
 #include "nvml.h"
 #include "nvml.hpp"
 #include "parsing.hpp"
+#include "pid.hpp"
 #include "scope_guard.hpp"
 #include "signal.hpp"
 #include "slope.hpp"
@@ -99,6 +100,8 @@ auto app(std::span<char const*> args) -> void
 auto main(int argc, char const** argv) -> int
 {
     try {
+        gfc::write_pid_file();
+        GFC_SCOPE_GUARD([] { gfc::remove_pid_file(); });
         gfc::block_signals({ SIGINT });
         app(std::span<char const*> { argv + 1,
                                      static_cast<std::size_t>(argc - 1) });

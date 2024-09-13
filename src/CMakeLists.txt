@@ -17,6 +17,7 @@ target_sources(
     logging.cpp
     nvml.cpp
     parsing.cpp
+    pid.cpp
     signal.cpp
     slope.cpp
     validation.cpp
