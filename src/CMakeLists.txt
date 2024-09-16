@@ -12,6 +12,7 @@ target_sources(
     gpufanctl-core
     PRIVATE
 
+    cmdline.cpp
     curve.cpp
     errors.cpp
     logging.cpp
