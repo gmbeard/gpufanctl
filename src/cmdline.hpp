@@ -19,10 +19,12 @@ enum class FlagArgument
     optional,
 };
 
-template <typename Enum>
+template <typename Id>
 struct FlagDefinition
 {
-    Enum identifier;
+    using id = Id;
+
+    Id identifier;
     char short_name;
     std::string_view long_name;
     FlagArgument argument;
@@ -72,8 +74,8 @@ auto find_flag(std::string_view value,
     return true;
 }
 
-auto split_argv_list(std::span<char const*> args)
-    -> std::pair<std::span<char const*>, std::span<char const*>>;
+auto split_argv_list(std::span<char const*> args) noexcept
+    -> std::pair<decltype(args.begin()), decltype(args.begin())>;
 
 template <typename Id, typename Allocator>
 struct CmdLine
@@ -85,7 +87,6 @@ struct CmdLine
     CmdLine(Allocator const& alloc = Allocator {})
         : flags_ { allocator { alloc } }
         , args_ { static_cast<char const**>(nullptr), 0 }
-        , unparsed_args_ { static_cast<char const**>(nullptr), 0 }
     {
     }
 
@@ -111,46 +112,38 @@ struct CmdLine
         return args_;
     }
 
-    auto set_unparsed_args(std::span<char const*> val) noexcept -> void
-    {
-        unparsed_args_ = val;
-    }
-
-    auto unparsed_args() const noexcept -> std::span<char const*>
-    {
-        return unparsed_args_;
-    }
-
 private:
-    std::vector<std::pair<Flags, std::optional<std::string_view>>, allocator>
+    std::vector<std::pair<Id, std::optional<std::string_view>>, allocator>
         flags_;
     std::span<char const*> args_ { static_cast<char const**>(nullptr), 0 };
-    std::span<char const*> unparsed_args_ { static_cast<char const**>(nullptr),
-                                            0 };
 };
 
-template <typename Id, typename Allocator>
-auto parse_cmdline(std::span<char const*> args, CmdLine<Id, Allocator>& output)
-    -> void
+template <typename Id = int, typename Allocator = std::allocator<void>>
+auto parse_cmdline(std::span<char const*> args,
+                   std::span<FlagDefinition<Id> const>
+                       defs = { static_cast<FlagDefinition<Id> const*>(nullptr),
+                                0 },
+                   Allocator alloc = Allocator {}) -> CmdLine<Id, Allocator>
 {
     using namespace std::string_literals;
 
+    CmdLine<Id, Allocator> output { alloc };
     auto split = split_argv_list(args);
-    output.set_unparsed_args(std::get<1>(split));
 
-    auto pos = std::get<0>(split).begin();
-    auto last = std::get<0>(split).end();
+    auto pos = args.begin();
+    auto mid = std::get<0>(split);
+    auto last = mid;
 
-    while (pos != last) {
-        if (*pos && (*pos)[0] != '-') {
-            std::rotate(pos, std::next(pos), std::get<0>(split).end());
-            last--;
+    while (pos != mid) {
+        if (*pos && ((*pos)[0] != '-' || std::strlen(*pos) == 1)) {
+            std::rotate(pos, std::next(pos), last);
+            --mid;
             continue;
         }
 
         FlagDefinition<Id> id;
         std::optional<std::string_view> flag_arg;
-        if (!find_flag(*pos, { flag_defs, std::size(flag_defs) }, id)) {
+        if (!find_flag(*pos, defs, id)) {
             throw std::runtime_error { "Invalid option: "s + *pos };
         }
         if (id.argument == FlagArgument::required ||
@@ -176,8 +169,11 @@ auto parse_cmdline(std::span<char const*> args, CmdLine<Id, Allocator>& output)
         ++pos;
     }
 
-    output.set_args(std::get<0>(split).subspan(
-        std::distance(std::get<0>(split).begin(), last)));
+    output.set_args(
+        { pos != std::get<1>(split) ? &*pos : nullptr,
+          static_cast<std::size_t>(std::distance(pos, std::get<1>(split))) });
+
+    return output;
 }
 
 } // namespace gfc

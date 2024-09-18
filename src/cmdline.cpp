@@ -2,23 +2,23 @@
 
 namespace gfc
 {
-auto split_argv_list(std::span<char const*> args)
-    -> std::pair<std::span<char const*>, std::span<char const*>>
+auto split_argv_list(std::span<char const*> args) noexcept
+    -> std::pair<decltype(args.begin()), decltype(args.begin())>
 {
-    auto args_end = std::find_if(args.begin(), args.end(), [](char const* arg) {
+    auto null_end = std::find(args.begin(), args.end(), nullptr);
+    auto args_end = std::find_if(args.begin(), null_end, [](char const* arg) {
         return arg && std::strcmp(arg, "--") == 0;
     });
 
-    auto args_to_process =
-        args.subspan(0, std::distance(args.begin(), args_end));
+    auto last = null_end;
 
-    if (args_end != args.end()) {
-        ++args_end;
+    if (args_end != null_end) {
+        *args_end = nullptr;
+        std::rotate(args_end, std::next(args_end), args.end());
+        last--;
     }
 
-    auto args_to_ignore = args.subspan(std::distance(args.begin(), args_end));
-
-    return std::make_pair(args_to_process, args_to_ignore);
+    return std::make_pair(args_end, last);
 }
 
 } // namespace gfc

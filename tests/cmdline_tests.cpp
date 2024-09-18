@@ -6,14 +6,11 @@
 
 auto should_parse_cmdline_with_no_args() -> void
 {
-    using CmdLine = gfc::CmdLine<gfc::Flags, std::allocator<void>>;
-
-    CmdLine cmdline;
-    parse_cmdline({ static_cast<char const**>(nullptr), 0 }, cmdline);
+    auto const cmdline =
+        gfc::parse_cmdline({ static_cast<char const**>(nullptr), 0 });
 
     EXPECT(cmdline.args().size() == 0);
     EXPECT(cmdline.flags().size() == 0);
-    EXPECT(cmdline.unparsed_args().size() == 0);
 }
 
 auto should_parse_cmdline() -> void
@@ -21,30 +18,54 @@ auto should_parse_cmdline() -> void
     using namespace std::string_literals;
     using namespace std::literals::string_view_literals;
 
-    using CmdLine = gfc::CmdLine<gfc::Flags, std::allocator<void>>;
-
-    char const* argv[] { "one", "-v", "two", "--interval-length", "5", "three",
-                         "-v",  "--", "exec" };
+    char const* argv[] { "one", "-v",    "two", "--interval-length",
+                         "-",   "three", "-v",  "-",
+                         "--",  "exec",  "-V",  nullptr };
     int argc = static_cast<int>(std::size(argv));
-    CmdLine cmdline;
 
-    parse_cmdline({ argv, static_cast<std::size_t>(argc) }, cmdline);
+    std::span<gfc::FlagDefinition<gfc::Flags> const> defs { gfc::flag_defs };
+    auto const cmdline =
+        gfc::parse_cmdline({ argv, static_cast<std::size_t>(argc) }, defs);
 
-    EXPECT(cmdline.args().size() == 3);
+    EXPECT(cmdline.args().size() == 6);
     EXPECT("one"sv == cmdline.args()[0]);
     EXPECT("two"sv == cmdline.args()[1]);
     EXPECT("three"sv == cmdline.args()[2]);
+    EXPECT("-"sv == cmdline.args()[3]);
+    EXPECT("exec"sv == cmdline.args()[4]);
+    EXPECT("-V"sv == cmdline.args()[5]);
     EXPECT(cmdline.flags().size() == 3);
     EXPECT(std::get<0>(cmdline.flags()[0]) == gfc::Flags::show_version);
     EXPECT(std::get<1>(cmdline.flags()[0]) == std::nullopt);
     EXPECT(std::get<0>(cmdline.flags()[1]) == gfc::Flags::interval_length);
     EXPECT(std::get<1>(cmdline.flags()[1]) != std::nullopt);
-    EXPECT(*std::get<1>(cmdline.flags()[1]) == "5"sv);
-    EXPECT(cmdline.unparsed_args().size() == 1);
+    EXPECT(*std::get<1>(cmdline.flags()[1]) == "-"sv);
+}
+
+auto should_parse_cmdline_with_no_flag_defs() -> void
+{
+    using namespace std::string_literals;
+    using namespace std::literals::string_view_literals;
+
+    using CmdLine = gfc::CmdLine<gfc::Flags, std::allocator<void>>;
+
+    char const* argv[] { "one", "two", "three", "--", "exec" };
+    int argc = static_cast<int>(std::size(argv));
+
+    auto const cmdline =
+        gfc::parse_cmdline({ argv, static_cast<std::size_t>(argc) });
+
+    EXPECT(cmdline.args().size() == 4);
+    EXPECT("one"sv == cmdline.args()[0]);
+    EXPECT("two"sv == cmdline.args()[1]);
+    EXPECT("three"sv == cmdline.args()[2]);
+    EXPECT("exec"sv == cmdline.args()[3]);
+    EXPECT(cmdline.flags().size() == 0);
 }
 
 auto main() -> int
 {
     return testing::run({ TEST(should_parse_cmdline_with_no_args),
-                          TEST(should_parse_cmdline) });
+                          TEST(should_parse_cmdline),
+                          TEST(should_parse_cmdline_with_no_flag_defs) });
 }
