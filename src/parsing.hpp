@@ -16,29 +16,37 @@ auto parse_curve_point(std::string_view input,
                        CurvePoint& output,
                        std::error_code& ec) noexcept -> bool;
 
-template <typename OutputIterator>
+template <typename OutputIterator, typename PointDelimiter>
 auto parse_curve_points(std::string_view input,
                         OutputIterator output,
+                        PointDelimiter const& delimiter,
                         std::error_code& ec) noexcept -> bool
 {
-    split(input.begin(), input.end(), output, ',', [&](auto first, auto last) {
-        if (ec) {
-            return gfc::CurvePoint {};
-        }
+    split(input.begin(),
+          input.end(),
+          output,
+          delimiter,
+          [&](auto first, auto last) {
+              if (ec) {
+                  return gfc::CurvePoint {};
+              }
 
-        std::string_view point_val { first != last ? &*first : nullptr,
-                                     static_cast<std::size_t>(
-                                         std::distance(first, last)) };
-        CurvePoint point;
-        parse_curve_point(point_val, point, ec);
-        return point;
-    });
+              std::string_view point_val { first != last ? &*first : nullptr,
+                                           static_cast<std::size_t>(
+                                               std::distance(first, last)) };
+              CurvePoint point;
+              parse_curve_point(point_val, point, ec);
+              return point;
+          });
 
     return !ec;
 }
 
-template <typename Allocator = std::allocator<Slope>>
-auto parse_curve(std::string_view input, Allocator const& alloc = Allocator {})
+template <typename PointDelimiter = char,
+          typename Allocator = std::allocator<Slope>>
+auto parse_curve(std::string_view input,
+                 PointDelimiter const& delimiter,
+                 Allocator const& alloc = Allocator {})
     -> std::vector<Slope, Allocator>
 {
     using CurvePointAlloc = typename std::allocator_traits<
@@ -47,7 +55,7 @@ auto parse_curve(std::string_view input, Allocator const& alloc = Allocator {})
     std::vector<CurvePoint, CurvePointAlloc> points { alloc };
     std::error_code ec;
 
-    if (!parse_curve_points(input, std::back_inserter(points), ec)) {
+    if (!parse_curve_points(input, std::back_inserter(points), delimiter, ec)) {
         throw std::system_error { ec };
     }
 

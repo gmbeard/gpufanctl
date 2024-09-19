@@ -14,6 +14,7 @@ target_sources(
 
     cmdline.cpp
     curve.cpp
+    delimiter.cpp
     errors.cpp
     logging.cpp
     nvml.cpp

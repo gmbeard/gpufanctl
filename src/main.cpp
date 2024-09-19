@@ -1,4 +1,5 @@
 #include "curve.hpp"
+#include "delimiter.hpp"
 #include "exios/exios.hpp"
 #include "interval.hpp"
 #include "logging.hpp"
@@ -34,7 +35,8 @@ auto app(std::span<char const*> args) -> void
 {
     using namespace std::chrono_literals;
 
-    auto const slopes = gfc::parse_curve(args.size() ? args[0] : "");
+    auto const slopes = gfc::parse_curve(args.size() ? args[0] : "",
+                                         gfc::CommaOrWhiteSpaceDelimiter {});
 
     gfc::nvml::init();
     GFC_SCOPE_GUARD([&] { gfc::nvml::shutdown(); });
