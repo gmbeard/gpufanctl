@@ -71,13 +71,17 @@ auto split(InputIterator first,
             break;
         }
 
-        *output++ = transform(first, split_point);
+        if (std::distance(first, split_point) > 1) {
+            *output++ = transform(first, split_point);
+        }
         std::advance(split_point, 1);
         first = split_point;
     }
     while (first != last);
 
-    *output++ = transform(first, split_point);
+    if (std::distance(first, split_point) > 1) {
+        *output++ = transform(first, split_point);
+    }
 
     return output;
 }
@@ -104,13 +108,15 @@ auto split(InputIterator first,
             break;
         }
 
-        *o_first++ = transform(first, split_point);
+        if (std::distance(first, split_point) > 1) {
+            *o_first++ = transform(first, split_point);
+        }
         std::advance(split_point, 1);
         first = split_point;
     }
     while (first != last && o_first != o_last);
 
-    if (o_first != o_last) {
+    if (o_first != o_last && std::distance(first, last) > 1) {
         *o_first++ = transform(first, split_point);
     }
 

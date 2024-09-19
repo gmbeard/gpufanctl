@@ -2,11 +2,9 @@
 #include "slope.hpp"
 #include "testing.hpp"
 #include "utils.hpp"
-#include <algorithm>
 #include <array>
 #include <iostream>
 #include <iterator>
-#include <optional>
 #include <system_error>
 
 auto should_split_string() -> void
@@ -29,12 +27,10 @@ auto should_split_string() -> void
 
     auto const num_items = std::distance(results.begin(), split_end);
     std::cerr << num_items << '\n';
-    EXPECT(num_items == 5);
+    EXPECT(num_items == 3);
     EXPECT(results[0] == "35:30");
-    EXPECT(results[1] == "");
-    EXPECT(results[2] == "60:50");
-    EXPECT(results[3] == "80:100");
-    EXPECT(results[4] == "");
+    EXPECT(results[1] == "60:50");
+    EXPECT(results[2] == "80:100");
 }
 
 auto should_parse_curve_point_pairs() -> void
