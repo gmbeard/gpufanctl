@@ -1,8 +1,10 @@
 #ifndef GPUFANCTL_CMDLINE_HPP_INCLUDED
 #define GPUFANCTL_CMDLINE_HPP_INCLUDED
 
+#include "cmdline_validation.hpp"
 #include <algorithm>
 #include <cstring>
+#include <initializer_list>
 #include <memory>
 #include <optional>
 #include <span>
@@ -28,26 +30,29 @@ struct FlagDefinition
     char short_name;
     std::string_view long_name;
     FlagArgument argument;
+    std::initializer_list<Id> conflicts {};
+    validation::FlagArgumentValidator<Id> validator {};
 };
 
-enum class Flags
+namespace detail
 {
-    show_version,
-    interval_length,
-};
+auto join_flag_names(char short_name, std::string_view long_name)
+    -> std::string;
+}
 
-constexpr FlagDefinition<Flags> const flag_defs[] = {
-    { Flags::show_version, 'v', "version", FlagArgument::none },
-    { Flags::interval_length, 'n', "interval-length", FlagArgument::required },
-};
+template <typename Id>
+auto to_string(FlagDefinition<Id> const& def) -> std::string
+{
+    return detail::join_flag_names(def.short_name, def.long_name);
+}
 
 template <typename Id>
 auto find_flag(std::string_view value,
-               std::span<FlagDefinition<Id> const> valid_flags,
-               FlagDefinition<Id>& output_id) -> bool
+               std::span<FlagDefinition<Id> const> valid_flags)
+    -> FlagDefinition<Id> const*
 {
     if (!value.size()) {
-        return false;
+        return nullptr;
     }
 
     bool use_short_name = true;
@@ -58,26 +63,25 @@ auto find_flag(std::string_view value,
     }
 
     if (use_short_name && value.size() > 1) {
-        return false;
+        return nullptr;
     }
 
-    auto const pos =
-        std::find_if(valid_flags.begin(), valid_flags.end(), [&](auto f) {
+    auto const pos = std::find_if(
+        valid_flags.begin(), valid_flags.end(), [&](auto const& f) {
             return use_short_name ? (f.short_name == value[0])
                                   : (f.long_name == value);
         });
 
     if (pos == valid_flags.end())
-        return false;
+        return nullptr;
 
-    output_id = *pos;
-    return true;
+    return &*pos;
 }
 
 auto split_argv_list(std::span<char const*> args) noexcept
     -> std::pair<decltype(args.begin()), decltype(args.begin())>;
 
-template <typename Id, typename Allocator>
+template <typename Id, typename Allocator = std::allocator<void>>
 struct CmdLine
 {
     using flag_arg_pair = std::pair<Id, std::optional<std::string_view>>;
@@ -96,10 +100,45 @@ struct CmdLine
         flags_.emplace_back(flag, arg);
     }
 
-    auto flags() const noexcept
+    [[nodiscard]] auto flags() const noexcept
         -> std::span<std::pair<Id, std::optional<std::string_view>> const>
     {
         return { flags_.data(), flags_.size() };
+    }
+
+    [[nodiscard]] auto get_flag(Id const& id) const noexcept
+        -> std::optional<flag_arg_pair>
+    {
+        auto const vals = flags();
+        auto const pos =
+            std::find_if(vals.begin(), vals.end(), [&](auto const& val) {
+                return std::get<0>(val) == id;
+            });
+
+        if (pos == vals.end())
+            return std::nullopt;
+
+        return *pos;
+    }
+
+    template <typename... Ids>
+    auto get_flags(Ids const&... ids) const noexcept
+    {
+        std::array<std::optional<flag_arg_pair>, sizeof...(Ids)> vals {
+            get_flag(ids)...
+        };
+        return vals;
+    }
+
+    [[nodiscard]] auto has_flag(Id const& id) const noexcept -> bool
+    {
+        auto const vals = flags();
+        auto const pos =
+            std::find_if(vals.begin(), vals.end(), [&](auto const& val) {
+                return std::get<0>(val) == id;
+            });
+
+        return pos != vals.end();
     }
 
     auto set_args(std::span<char const*> val) noexcept -> void
@@ -107,7 +146,7 @@ struct CmdLine
         args_ = val;
     }
 
-    auto args() const noexcept -> std::span<char const*>
+    [[nodiscard]] auto args() const noexcept -> std::span<char const*>
     {
         return args_;
     }
@@ -126,6 +165,7 @@ auto parse_cmdline(std::span<char const*> args,
                    Allocator alloc = Allocator {}) -> CmdLine<Id, Allocator>
 {
     using namespace std::string_literals;
+    using namespace std::string_view_literals;
 
     CmdLine<Id, Allocator> output { alloc };
     auto split = split_argv_list(args);
@@ -141,31 +181,54 @@ auto parse_cmdline(std::span<char const*> args,
             continue;
         }
 
-        FlagDefinition<Id> id;
+        FlagDefinition<Id> const* def;
         std::optional<std::string_view> flag_arg;
-        if (!find_flag(*pos, defs, id)) {
+        if (def = find_flag(*pos, defs); !def) {
             throw std::runtime_error { "Invalid option: "s + *pos };
         }
-        if (id.argument == FlagArgument::required ||
-            id.argument == FlagArgument::optional) {
+        if (def->argument == FlagArgument::required ||
+            def->argument == FlagArgument::optional) {
 
             auto flag_arg_pos = std::next(pos);
-            if (id.argument == FlagArgument::required) {
-                if (flag_arg_pos == last) {
+            if (def->argument == FlagArgument::required) {
+                if (flag_arg_pos == mid) {
                     throw std::runtime_error { "Argument required: "s + *pos };
                 }
                 flag_arg = *flag_arg_pos;
                 ++pos;
             }
-
-            if (id.argument == FlagArgument::optional) {
+            else if (def->argument == FlagArgument::optional) {
                 if (flag_arg_pos != last && (*flag_arg_pos)[0] != '-') {
                     flag_arg = *flag_arg_pos;
                     ++pos;
                 }
             }
         }
-        output.push_flag(id.identifier, flag_arg);
+
+        auto const conflict =
+            std::find_if(def->conflicts.begin(),
+                         def->conflicts.end(),
+                         [&](auto const& val) { return output.has_flag(val); });
+
+        if (conflict != def->conflicts.end()) {
+            auto const conflicting_def =
+                std::find_if(defs.begin(), defs.end(), [&](auto const& v) {
+                    return v.identifier == *conflict;
+                });
+
+            auto const msg = "Flags cannot be used together: "s +
+                             to_string(*def) + " and " +
+                             to_string(*conflicting_def);
+
+            throw std::runtime_error { std::move(msg) };
+        }
+
+        if (!def->validator(def->identifier, flag_arg)) {
+            throw std::runtime_error { "Flag argument is not valid: "s +
+                                       to_string(*def) };
+        }
+
+        output.push_flag(def->identifier, flag_arg);
         ++pos;
     }
 

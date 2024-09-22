@@ -23,6 +23,8 @@ auto ErrorCategory::message(int condition) const -> std::string
         return "Too few curve points. At least two required";
     case ErrorCodes::invalid_fan_speed:
         return "Fan speed value outside acceptable range";
+    case ErrorCodes::cmdline_invalid_interval:
+        return "Invalid interval length value";
     }
 
     return "Unknown";

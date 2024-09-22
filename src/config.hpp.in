@@ -1,0 +1,11 @@
+#ifndef GPUFANCTL_CONFIG_HPP_INCLUDED
+#define GPUFANCTL_CONFIG_HPP_INCLUDED
+
+#include <string_view>
+
+namespace gfc::config
+{
+constexpr std::string_view const kAppVersion = "@PROJECT_VERSION@";
+}
+
+#endif // GPUFANCTL_CONFIG_HPP_INCLUDED

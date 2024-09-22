@@ -2,11 +2,15 @@
 #include "logging.hpp"
 #include "nvml.hpp"
 #include <algorithm>
+#include <chrono>
+#include <cstdio>
 
 namespace gfc
 {
 auto Curve::operator()() -> void
 {
+    namespace ch = std::chrono;
+
     auto const current_temperature =
         nvml::get_device_temperature(device, NVML_TEMPERATURE_GPU);
 
@@ -22,6 +26,20 @@ auto Curve::operator()() -> void
     }
     else {
         log(LogLevel::debug, "No fan speed change");
+    }
+
+    if (print_metrics_to_stdout) {
+        if (!invoked_at_least_once) {
+            dprintf(STDOUT_FILENO, "seconds temperature fan_speed\n");
+        }
+        dprintf(STDOUT_FILENO,
+                "%lu %lu %u\n",
+                ch::duration_cast<ch::seconds>(ClockType::now() - start_time)
+                    .count(),
+                current_temperature,
+                target_fan_speed);
+
+        invoked_at_least_once = true;
     }
 
     previous_fan_speed = target_fan_speed;
@@ -67,9 +85,10 @@ auto Curve::set_fan_speed(unsigned int speed) -> void
 
 auto curve(nvmlDevice_t device,
            std::size_t fan_count,
-           std::span<Slope const> slopes) noexcept -> Curve
+           std::span<Slope const> slopes,
+           bool print_metrics_to_stdout) noexcept -> Curve
 {
-    return Curve { device, fan_count, slopes };
+    return Curve { device, fan_count, slopes, print_metrics_to_stdout };
 }
 
 } // namespace gfc

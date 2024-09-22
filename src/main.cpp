@@ -1,3 +1,5 @@
+#include "cmdline.hpp"
+#include "config.hpp"
 #include "curve.hpp"
 #include "delimiter.hpp"
 #include "exios/exios.hpp"
@@ -5,14 +7,18 @@
 #include "logging.hpp"
 #include "nvml.h"
 #include "nvml.hpp"
+#include "parameters.hpp"
 #include "parsing.hpp"
 #include "pid.hpp"
 #include "scope_guard.hpp"
 #include "signal.hpp"
 #include "slope.hpp"
 #include <cstddef>
+#include <exception>
 #include <iostream>
+#include <ostream>
 #include <span>
+#include <system_error>
 #include <vector>
 
 auto reset_fans(nvmlDevice_t device, unsigned int fan_count) noexcept -> void
@@ -31,11 +37,11 @@ auto reset_fans(nvmlDevice_t device, unsigned int fan_count) noexcept -> void
     }
 }
 
-auto app(std::span<char const*> args) -> void
+auto app(gfc::Parameters const& params) -> void
 {
     using namespace std::chrono_literals;
 
-    auto const slopes = gfc::parse_curve(args.size() ? args[0] : "",
+    auto const slopes = gfc::parse_curve(params.curve_points_data,
                                          gfc::CommaOrWhiteSpaceDelimiter {});
 
     gfc::nvml::init();
@@ -77,11 +83,11 @@ auto app(std::span<char const*> args) -> void
 
     gfc::set_interval(
         timer,
-        std::chrono::milliseconds(gfc::kDefaultIntervalMilliseconds),
-        gfc::curve(
-            device,
-            fan_count,
-            std::span<gfc::Slope const> { slopes.data(), slopes.size() }),
+        std::chrono::milliseconds(params.interval_length * 1000),
+        gfc::curve(device,
+                   fan_count,
+                   std::span<gfc::Slope const> { slopes.data(), slopes.size() },
+                   params.output_metrics),
         [&](exios::TimerOrEventIoResult result) {
             if (!result && result.error() != std::errc::operation_canceled) {
                 auto msg = result.error().message();
@@ -92,6 +98,7 @@ auto app(std::span<char const*> args) -> void
             }
         });
 
+    gfc::log(gfc::LogLevel::info, "Running");
     static_cast<void>(ctx.run());
 }
 
@@ -101,15 +108,55 @@ auto app(std::span<char const*> args) -> void
  */
 auto main(int argc, char const** argv) -> int
 {
+    gfc::Parameters params {};
+    std::error_code params_error {};
+    gfc::CmdLine<gfc::cmdline::Flags> cmdline;
+
+    try {
+        cmdline = gfc::parse_cmdline(
+            { argv + 1, static_cast<std::size_t>(argc - 1) },
+            std::span { &gfc::cmdline::flag_defs[0],
+                        std::size(gfc::cmdline::flag_defs) });
+    }
+    catch (std::exception const& e) {
+        gfc::log(gfc::LogLevel::error, "Command line: %s", e.what());
+        return 1;
+    }
+
+    if (!gfc::set_parameters(cmdline, params, params_error)) {
+        gfc::log(gfc::LogLevel::error,
+                 "Application parameters: %s",
+                 params_error.message().c_str());
+        return 1;
+    }
+
+    switch (params.diagnostic_level) {
+    case gfc::app::DiagnosticLevel::silent:
+        gfc::set_minimum_log_level(gfc::LogLevel::none);
+    case gfc::app::DiagnosticLevel::quiet:
+        gfc::set_minimum_log_level(gfc::LogLevel::error);
+        break;
+    case gfc::app::DiagnosticLevel::normal:
+        gfc::set_minimum_log_level(gfc::LogLevel::info);
+        break;
+    case gfc::app::DiagnosticLevel::verbose:
+        gfc::set_minimum_log_level(gfc::LogLevel::debug);
+        break;
+    }
+
+    if (params.mode == gfc::app::Mode::show_version) {
+        std::cout << gfc::config::kAppVersion << '\n';
+        return 0;
+    }
+
     try {
         gfc::write_pid_file();
         GFC_SCOPE_GUARD([] { gfc::remove_pid_file(); });
         gfc::block_signals({ SIGINT });
-        app(std::span<char const*> { argv + 1,
-                                     static_cast<std::size_t>(argc - 1) });
+        app(params);
     }
     catch (std::exception const& e) {
-        std::cerr << "[ERROR] " << e.what() << '\n';
+        gfc::log(gfc::LogLevel::error, "%s", e.what());
         return 1;
     }
 

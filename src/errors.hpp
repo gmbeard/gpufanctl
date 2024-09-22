@@ -14,7 +14,8 @@ enum class ErrorCodes : int
     temperature_order,
     invalid_curve_point,
     too_few_curve_points,
-    invalid_fan_speed
+    invalid_fan_speed,
+    cmdline_invalid_interval,
 };
 
 struct ErrorCategory : std::error_category

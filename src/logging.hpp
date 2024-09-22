@@ -20,7 +20,10 @@ enum class LogLevel : std::uint8_t
     info = 2,
     warn = 3,
     error = 4,
+    none = 5,
 };
+
+auto set_minimum_log_level(LogLevel level) noexcept -> void;
 
 template <typename... Args>
 auto log(LogLevel level, char const* fmt, Args&&... args) noexcept -> void

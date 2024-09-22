@@ -1,3 +1,8 @@
+configure_file(
+    config.hpp.in
+    config.hpp
+)
+
 add_library(
     gpufanctl-core
 )
@@ -29,6 +34,7 @@ target_include_directories(
     gpufanctl-core
     PUBLIC
     "${CMAKE_CURRENT_LIST_DIR}"
+    "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
 add_executable(
