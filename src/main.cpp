@@ -14,11 +14,13 @@
 #include "signal.hpp"
 #include "slope.hpp"
 #include <cstddef>
+#include <cstdio>
 #include <exception>
 #include <iostream>
 #include <ostream>
 #include <span>
 #include <system_error>
+#include <unistd.h>
 #include <vector>
 
 auto reset_fans(nvmlDevice_t device, unsigned int fan_count) noexcept -> void
@@ -37,12 +39,47 @@ auto reset_fans(nvmlDevice_t device, unsigned int fan_count) noexcept -> void
     }
 }
 
+template <typename Allocator>
+auto print_fan_curve(std::vector<gfc::Slope, Allocator> const& curve) -> void
+{
+    bool first_slope = true;
+    for (auto const& slope : curve) {
+        if (first_slope) {
+            dprintf(STDOUT_FILENO, "temperature fan_speed\n");
+
+            if (slope.start().temperature > 0) {
+                dprintf(
+                    STDOUT_FILENO, "0 0\n%u 0\n", slope.start().temperature);
+            }
+            dprintf(STDOUT_FILENO,
+                    "%u %u\n",
+                    slope.start().temperature,
+                    slope.start().fan_speed);
+        }
+        dprintf(STDOUT_FILENO,
+                "%u %u\n",
+                slope.end().temperature,
+                slope.end().fan_speed);
+
+        first_slope = false;
+    }
+}
+
 auto app(gfc::Parameters const& params) -> void
 {
     using namespace std::chrono_literals;
 
     auto const slopes = gfc::parse_curve(params.curve_points_data,
                                          gfc::CommaOrWhiteSpaceDelimiter {});
+
+    if (params.mode == gfc::app::Mode::print_fan_curve) {
+        print_fan_curve(slopes);
+        return;
+    }
+
+    gfc::write_pid_file();
+    GFC_SCOPE_GUARD([] { gfc::remove_pid_file(); });
+    gfc::block_signals({ SIGINT });
 
     gfc::nvml::init();
     GFC_SCOPE_GUARD([&] { gfc::nvml::shutdown(); });
@@ -145,14 +182,14 @@ auto main(int argc, char const** argv) -> int
     }
 
     if (params.mode == gfc::app::Mode::show_version) {
-        std::cout << gfc::config::kAppVersion << '\n';
+        dprintf(STDOUT_FILENO,
+                "%.*s\n",
+                static_cast<int>(gfc::config::kAppVersion.size()),
+                gfc::config::kAppVersion.data());
         return 0;
     }
 
     try {
-        gfc::write_pid_file();
-        GFC_SCOPE_GUARD([] { gfc::remove_pid_file(); });
-        gfc::block_signals({ SIGINT });
         app(params);
     }
     catch (std::exception const& e) {
