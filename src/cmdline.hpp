@@ -2,7 +2,10 @@
 #define GPUFANCTL_CMDLINE_HPP_INCLUDED
 
 #include "cmdline_validation.hpp"
+#include "delimiter.hpp"
+#include "utils.hpp"
 #include <algorithm>
+#include <cstdio>
 #include <cstring>
 #include <initializer_list>
 #include <memory>
@@ -10,6 +13,7 @@
 #include <span>
 #include <stdexcept>
 #include <string_view>
+#include <unistd.h>
 #include <vector>
 
 namespace gfc
@@ -237,6 +241,79 @@ auto parse_cmdline(std::span<char const*> args,
           static_cast<std::size_t>(std::distance(pos, std::get<1>(split))) });
 
     return output;
+}
+
+// clang-format off
+template <typename T>
+concept HasFlagDescription = requires(T const& val) {
+    { get_flag_description(val) };
+};
+// clang-format on
+
+template <typename Id>
+auto print_flag_defs(std::span<FlagDefinition<Id> const> defs) noexcept -> void
+{
+    if (defs.size()) {
+        dprintf(STDOUT_FILENO, "OPTIONS\n");
+    }
+
+    char const kIndent[] = "  ";
+    for (auto const& def : defs) {
+        dprintf(STDOUT_FILENO, "%s", kIndent);
+        if (def.short_name && def.long_name.size()) {
+            dprintf(STDOUT_FILENO,
+                    "-%c, --%.*s",
+                    def.short_name,
+                    static_cast<int>(def.long_name.size()),
+                    def.long_name.data());
+        }
+        else if (def.short_name) {
+            dprintf(STDOUT_FILENO, "-%c", def.short_name);
+        }
+        else {
+            dprintf(STDOUT_FILENO,
+                    "--%.*s",
+                    static_cast<int>(def.long_name.size()),
+                    def.long_name.data());
+        }
+
+        if (def.argument == FlagArgument::required) {
+            dprintf(STDOUT_FILENO, " <ARG>");
+        }
+        else if (def.argument == FlagArgument::optional) {
+            dprintf(STDOUT_FILENO, " [ <ARG> ]");
+        }
+
+        if constexpr (HasFlagDescription<Id>) {
+            dprintf(STDOUT_FILENO, "\n");
+            std::size_t cols = (std::size(kIndent) - 1) * 2;
+            dprintf(STDOUT_FILENO, "%s%s", kIndent, kIndent);
+
+            std::string_view const desc = get_flag_description(def.identifier);
+            for_each_split(
+                desc.begin(),
+                desc.end(),
+                CommaOrWhiteSpaceDelimiter {},
+                [&](auto start, auto end) {
+                    std::string_view token { start != end ? &*start : nullptr,
+                                             static_cast<std::size_t>(end -
+                                                                      start) };
+
+                    if (cols + token.size() > 80) {
+                        dprintf(STDOUT_FILENO, "\n%s%s", kIndent, kIndent);
+                        cols = (std::size(kIndent) - 1) * 2;
+                    }
+
+                    dprintf(STDOUT_FILENO,
+                            "%.*s ",
+                            static_cast<int>(token.size()),
+                            token.data());
+                    cols += token.size();
+                });
+        }
+
+        dprintf(STDOUT_FILENO, "\n\n");
+    }
 }
 
 } // namespace gfc

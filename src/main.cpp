@@ -181,7 +181,19 @@ auto main(int argc, char const** argv) -> int
         break;
     }
 
-    if (params.mode == gfc::app::Mode::show_version) {
+    if (params.mode == gfc::app::Mode::print_help) {
+        dprintf(STDOUT_FILENO, "USAGE\n");
+        dprintf(STDOUT_FILENO,
+                "  %s [ OPTION... ] [ <FAN CURVE DEFINITION> ]\n",
+                argv[0]);
+        dprintf(STDOUT_FILENO, "  %s -v | --version\n", argv[0]);
+        dprintf(STDOUT_FILENO, "  %s -p | --print-fan-curve\n", argv[0]);
+        dprintf(STDOUT_FILENO, "\n");
+        gfc::print_flag_defs(std::span { gfc::cmdline::flag_defs,
+                                         std::size(gfc::cmdline::flag_defs) });
+        return 0;
+    }
+    else if (params.mode == gfc::app::Mode::show_version) {
         dprintf(STDOUT_FILENO,
                 "%.*s\n",
                 static_cast<int>(gfc::config::kAppVersion.size()),

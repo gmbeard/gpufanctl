@@ -71,7 +71,7 @@ auto split(InputIterator first,
             break;
         }
 
-        if (std::distance(first, split_point) > 1) {
+        if (std::distance(first, split_point) >= 1) {
             *output++ = transform(first, split_point);
         }
         std::advance(split_point, 1);
@@ -79,7 +79,7 @@ auto split(InputIterator first,
     }
     while (first != last);
 
-    if (std::distance(first, split_point) > 1) {
+    if (std::distance(first, split_point) >= 1) {
         *output++ = transform(first, split_point);
     }
 
@@ -108,7 +108,7 @@ auto split(InputIterator first,
             break;
         }
 
-        if (std::distance(first, split_point) > 1) {
+        if (std::distance(first, split_point) >= 1) {
             *o_first++ = transform(first, split_point);
         }
         std::advance(split_point, 1);
@@ -116,12 +116,41 @@ auto split(InputIterator first,
     }
     while (first != last && o_first != o_last);
 
-    if (o_first != o_last && std::distance(first, last) > 1) {
+    if (o_first != o_last && std::distance(first, last) >= 1) {
         *o_first++ = transform(first, split_point);
     }
 
     return o_first;
 }
 
+template <typename InputIterator, typename T, typename F>
+auto for_each_split(InputIterator first,
+                    InputIterator last,
+                    T const& delim,
+                    F binary) -> void
+{
+    if (first == last) {
+        return;
+    }
+
+    auto split_point = first;
+    do {
+        split_point = std::find(first, last, delim);
+        if (split_point == last) {
+            break;
+        }
+
+        if (std::distance(first, split_point) >= 1) {
+            binary(first, split_point);
+        }
+        std::advance(split_point, 1);
+        first = split_point;
+    }
+    while (first != last);
+
+    if (std::distance(first, last) >= 1) {
+        binary(first, split_point);
+    }
+}
 } // namespace gfc
 #endif // GPUFANCTL_UTILS_HPP_INCLUDED

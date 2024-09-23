@@ -24,6 +24,7 @@ enum class Flags
     quiet,
     silent,
     verbose,
+    print_help,
 };
 
 FlagDefinition<Flags> const flag_defs[] = {
@@ -51,7 +52,10 @@ FlagDefinition<Flags> const flag_defs[] = {
       { Flags::quiet, Flags::silent } },
     { Flags::output_metrics, 'o', "output-metrics", FlagArgument::none },
     { Flags::print_fan_curve, 'p', "print-fan-curve", FlagArgument::none },
+    { Flags::print_help, 'h', "help", FlagArgument::none },
 };
+
+auto get_flag_description(Flags flag) noexcept -> char const*;
 
 } // namespace cmdline
 
@@ -63,6 +67,7 @@ enum class Mode
     temperature_control,
     show_version,
     print_fan_curve,
+    print_help,
 };
 
 enum class DiagnosticLevel
@@ -104,7 +109,10 @@ set_parameters(CmdLine<cmdline::Flags, Allocator> const& cmdline,
                Parameters& params,
                std::error_code& ec) noexcept -> bool
 {
-    if (cmdline.has_flag(cmdline::Flags::show_version)) {
+    if (cmdline.has_flag(cmdline::Flags::print_help)) {
+        params.mode = app::Mode::print_help;
+    }
+    else if (cmdline.has_flag(cmdline::Flags::show_version)) {
         params.mode = app::Mode::show_version;
     }
     else if (cmdline.has_flag(cmdline::Flags::print_fan_curve)) {

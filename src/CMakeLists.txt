@@ -23,6 +23,7 @@ target_sources(
     errors.cpp
     logging.cpp
     nvml.cpp
+    parameters.cpp
     parsing.cpp
     pid.cpp
     signal.cpp

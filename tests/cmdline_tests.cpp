@@ -20,7 +20,7 @@ auto should_parse_cmdline() -> void
     using namespace std::literals::string_view_literals;
 
     char const* argv[] { "one", "-v",    "two", "--interval-length",
-                         "-",   "three", "-v",  "-",
+                         "5",   "three", "-v",  "-",
                          "--",  "exec",  "-V",  nullptr };
     int argc = static_cast<int>(std::size(argv));
 
@@ -44,7 +44,7 @@ auto should_parse_cmdline() -> void
     EXPECT(std::get<0>(cmdline.flags()[1]) ==
            gfc::cmdline::Flags::interval_length);
     EXPECT(std::get<1>(cmdline.flags()[1]) != std::nullopt);
-    EXPECT(*std::get<1>(cmdline.flags()[1]) == "-"sv);
+    EXPECT(*std::get<1>(cmdline.flags()[1]) == "5"sv);
 }
 
 auto should_parse_cmdline_with_no_flag_defs() -> void
