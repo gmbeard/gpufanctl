@@ -31,6 +31,12 @@ target_sources(
     validation.cpp
 )
 
+target_link_libraries(
+    gpufanctl-core
+    PUBLIC
+    Exios::exios
+)
+
 target_include_directories(
     gpufanctl-core
     PUBLIC
@@ -53,5 +59,4 @@ target_link_libraries(
     PRIVATE
     gpufanctl-core
     pthread
-    Exios::exios
 )
