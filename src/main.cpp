@@ -77,9 +77,16 @@ auto app(gfc::Parameters const& params) -> void
         return;
     }
 
-    gfc::write_pid_file();
-    GFC_SCOPE_GUARD([] { gfc::remove_pid_file(); });
-    gfc::block_signals({ SIGINT });
+    if (params.use_pidfile) {
+        gfc::write_pid_file();
+    }
+    GFC_SCOPE_GUARD([&params] {
+        if (params.use_pidfile) {
+            gfc::remove_pid_file();
+        }
+    });
+
+    gfc::block_signals({ SIGINT, SIGTERM });
 
     gfc::nvml::init();
     GFC_SCOPE_GUARD([&] { gfc::nvml::shutdown(); });
@@ -111,10 +118,24 @@ auto app(gfc::Parameters const& params) -> void
 
     exios::ContextThread ctx;
     exios::Timer timer { ctx };
-    exios::Signal signal { ctx, SIGINT };
+    exios::Signal sigint_signal { ctx, SIGINT };
+    exios::Signal sigterm_signal { ctx, SIGTERM };
 
-    signal.wait([&](auto) {
+    sigint_signal.wait([&](auto result) {
+        if (!result)
+            return;
+
         gfc::log(gfc::LogLevel::info, "SIGINT received. Stopping");
+        sigterm_signal.cancel();
+        timer.cancel();
+    });
+
+    sigterm_signal.wait([&](auto result) {
+        if (!result)
+            return;
+
+        gfc::log(gfc::LogLevel::info, "SIGTERM received. Stopping");
+        sigint_signal.cancel();
         timer.cancel();
     });
 
@@ -131,7 +152,8 @@ auto app(gfc::Parameters const& params) -> void
                 gfc::log(gfc::LogLevel::error,
                          "Curve interval error: %s",
                          msg.c_str());
-                signal.cancel();
+                sigint_signal.cancel();
+                sigterm_signal.cancel();
             }
         });
 

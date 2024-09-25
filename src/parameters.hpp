@@ -25,6 +25,7 @@ enum class Flags
     silent,
     verbose,
     print_help,
+    no_pidfile,
 };
 
 FlagDefinition<Flags> const flag_defs[] = {
@@ -53,6 +54,7 @@ FlagDefinition<Flags> const flag_defs[] = {
     { Flags::output_metrics, 'o', "output-metrics", FlagArgument::none },
     { Flags::print_fan_curve, 'p', "print-fan-curve", FlagArgument::none },
     { Flags::print_help, 'h', "help", FlagArgument::none },
+    { Flags::no_pidfile, 0, "no-pidfile", FlagArgument::none },
 };
 
 auto get_flag_description(Flags flag) noexcept -> char const*;
@@ -87,6 +89,7 @@ struct Parameters
     std::size_t interval_length { kDefaultIntervalSeconds };
     app::DiagnosticLevel diagnostic_level { app::DiagnosticLevel::normal };
     bool output_metrics { false };
+    bool use_pidfile { true };
 };
 
 template <typename T>
@@ -157,6 +160,7 @@ set_parameters(CmdLine<cmdline::Flags, Allocator> const& cmdline,
     }
 
     params.output_metrics = cmdline.has_flag(cmdline::Flags::output_metrics);
+    params.use_pidfile = !cmdline.has_flag(cmdline::Flags::no_pidfile);
 
     return true;
 }

@@ -24,6 +24,10 @@ auto get_flag_description(Flags flag) noexcept -> char const*
     case Flags::interval_length:
         return R"#(The interval for the temperature control loop in seconds.
             Must be between 1 and 5 (inclusive). Default 5.)#";
+    case Flags::no_pidfile:
+        return R"#(Don't write the PID file at /var/run/gpufanctl.pid)#";
     }
+
+    return "";
 }
 } // namespace gfc::cmdline

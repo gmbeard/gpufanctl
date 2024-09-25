@@ -308,7 +308,7 @@ auto print_flag_defs(std::span<FlagDefinition<Id> const> defs) noexcept -> void
                             "%.*s ",
                             static_cast<int>(token.size()),
                             token.data());
-                    cols += token.size();
+                    cols += token.size() + 1;
                 });
         }
 
