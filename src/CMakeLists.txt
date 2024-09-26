@@ -28,6 +28,7 @@ target_sources(
     pid.cpp
     signal.cpp
     slope.cpp
+    sticky_cancel_timer.cpp
     validation.cpp
 )
 
