@@ -13,11 +13,11 @@
 #include "scope_guard.hpp"
 #include "signal.hpp"
 #include "slope.hpp"
+#include "sticky_cancel_timer.hpp"
+#include <array>
 #include <cstddef>
 #include <cstdio>
 #include <exception>
-#include <iostream>
-#include <ostream>
 #include <span>
 #include <system_error>
 #include <unistd.h>
@@ -117,27 +117,30 @@ auto app(gfc::Parameters const& params) -> void
     GFC_SCOPE_GUARD([&] { reset_fans(device, fan_count); });
 
     exios::ContextThread ctx;
-    exios::Timer timer { ctx };
-    exios::Signal sigint_signal { ctx, SIGINT };
-    exios::Signal sigterm_signal { ctx, SIGTERM };
+    gfc::StickyCancelTimer timer { ctx };
+    std::array<exios::Signal, 2> signals { { { ctx, SIGINT },
+                                             { ctx, SIGTERM } } };
+    auto cancel_signals = [&]() {
+        for (auto& sig : signals)
+            sig.cancel();
+    };
 
-    sigint_signal.wait([&](auto result) {
-        if (!result)
-            return;
+    gfc::wait_any(
+        signals.begin(), signals.end(), [&](exios::SignalResult result) {
+            if (!result) {
+                auto error = exios::get_error(result);
+                if (error == std::errc::operation_canceled)
+                    return;
 
-        gfc::log(gfc::LogLevel::info, "SIGINT received. Stopping");
-        sigterm_signal.cancel();
-        timer.cancel();
-    });
+                throw error;
+            }
 
-    sigterm_signal.wait([&](auto result) {
-        if (!result)
-            return;
-
-        gfc::log(gfc::LogLevel::info, "SIGTERM received. Stopping");
-        sigint_signal.cancel();
-        timer.cancel();
-    });
+            auto const r = exios::get_value(result);
+            gfc::log(gfc::LogLevel::info,
+                     "Signal %s received. Stopping",
+                     r.ssi_signo == SIGINT ? "SIGINT" : "SIGTERM");
+            timer.cancel();
+        });
 
     gfc::set_interval(
         timer,
@@ -152,8 +155,7 @@ auto app(gfc::Parameters const& params) -> void
                 gfc::log(gfc::LogLevel::error,
                          "Curve interval error: %s",
                          msg.c_str());
-                sigint_signal.cancel();
-                sigterm_signal.cancel();
+                cancel_signals();
             }
         });
 

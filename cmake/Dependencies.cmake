@@ -1,5 +1,5 @@
 include(FetchContent)
-set(GPUFANCTL_EXIOS_VERSION "0.2.0")
+set(GPUFANCTL_EXIOS_VERSION "0.3.0")
 
 if(GPUFANCTL_USE_LOCAL_DEPENDENCIES)
     FetchContent_Declare(

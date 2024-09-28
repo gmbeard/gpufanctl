@@ -2,17 +2,23 @@
 #define GPUFANCTL_INTERVAL_HPP_INCLUDED
 
 #include "exios/exios.hpp"
-#include "logging.hpp"
 #include <chrono>
 #include <utility>
 
 namespace gfc
 {
 
-template <typename Rep, typename Period, typename F, typename Completion>
+template <typename Timer,
+          typename Rep,
+          typename Period,
+          typename F,
+          typename Completion>
 struct Interval
 {
-    auto run() -> void { set_timeout(std::chrono::seconds(0)); }
+    auto run() -> void
+    {
+        set_timeout(std::chrono::seconds(0));
+    }
 
     template <typename Rep_, typename Period_>
     auto set_timeout(std::chrono::duration<Rep_, Period_> timeout) -> void
@@ -33,14 +39,18 @@ struct Interval
         set_timeout(interval_duration);
     }
 
-    exios::Timer& timer;
+    Timer& timer;
     std::chrono::duration<Rep, Period> interval_duration;
     F interval;
     Completion completion;
 };
 
-template <typename Rep, typename Period, typename F, typename Completion>
-auto set_interval(exios::Timer& timer,
+template <typename Timer,
+          typename Rep,
+          typename Period,
+          typename F,
+          typename Completion>
+auto set_interval(Timer& timer,
                   std::chrono::duration<Rep, Period> interval_duration,
                   F&& interval,
                   Completion&& completion)
