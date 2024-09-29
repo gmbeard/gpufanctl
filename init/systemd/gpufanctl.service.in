@@ -1,0 +1,14 @@
+[Unit]
+Description=GPU fan control
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=@CMAKE_INSTALL_FULL_BINDIR@/gpufanctl
+Restart=always
+RestartSec=5s
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
