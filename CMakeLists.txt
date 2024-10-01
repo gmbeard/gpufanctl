@@ -50,3 +50,6 @@ if(GPUFANCTL_ENABLE_TESTS)
 endif()
 
 install(TARGETS gpufanctl)
+install(
+    FILES gpufanctl.1
+    DESTINATION "${CMAKE_INSTALL_MANDIR}")
