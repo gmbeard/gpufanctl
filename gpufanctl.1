@@ -1,0 +1,60 @@
+.TH GPUFANCTL 1 "1 October 24"
+.SH NAME
+\fBgpufanctl\fP - A GPU fan control utility
+.SH SYNOPSIS
+\fBgpufanctl\fP [ OPTION... ] [ <FAN_CURVE_DEFINITION> ]
+.TP
+\fBgpufanctl\fP -v | --version
+.TP
+\fBgpufanctl\fP -p | --print-fan-curve
+.TP
+
+.SH DESCRIPTION
+\fBgpufanctl\fP Is a daemon utility that automatically controls the fans
+of your GPU based on its current temperature.
+.PP
+The fan curve can be specified by \fBFAN_CURVE_DEFINITION\fP, which must contain
+at least 2 pairs of temperature and fan speed values in the format
+\fBTEMPERATURE:FAN_SPEED\fP. For example, \fB60:50,80:100\fP
+will define a fan curve that will set the fan speed to \fB50%\fP when the temperature
+is \fB60C\fP and \fB100%\fP when the temperature reaches \fB80C\fP. The temperature
+will be sampled on the specified interval and will set the fan speed based on the
+interpolated value along this slope.
+.PP
+Any temperature
+below the minimum specified \fBFAN_CURVE_DEFINITION\fP will default the fan to the
+GPU's default fan profile.
+.PP
+
+.SS Options
+.TP
+\fB-v, --version\fP
+Prints the application version and exits 
+.TP
+\fB-n, --interval-length <ARG>\fP
+The interval for the temperature control loop in seconds. Must be between 1 
+and 5 (inclusive). Default 5. 
+.TP
+\fB-q, --quiet\fP
+Reduces the number of diagnostic messages printed to STDERR 
+.TP
+\fB--silent\fP
+Prevents all diagnostic messages from being printed to STDERR 
+.TP
+\fB--verbose\fP
+Increases the number of diagnostic messages printed to STDERR 
+.TP
+\fB-o, --output-metrics\fP
+The metrics for temperature and target fan speed are periodically printed to 
+STDOUT. This can be useful for analyzing the temperature control over a 
+period of time. 
+.TP
+\fB-p, --print-fan-curve\fP
+Prints the fan curve points to STDOUT and exits 
+.TP
+\fB-h, --help\fP
+Shows this help message and exits 
+.TP
+\fB--no-pidfile\fP
+Don't write the PID file at /var/run/gpufanctl.pid 
+.TP
