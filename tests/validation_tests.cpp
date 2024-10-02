@@ -6,13 +6,17 @@
 #include <span>
 #include <system_error>
 
+constexpr std::size_t kMaxTemperature = 80lu;
+
 auto should_fail_validation_for_negative_slope()
 {
     std::array<gfc::CurvePoint, 2> points = { { { 30, 30 }, { 40, 20 } } };
 
     std::error_code ec;
     auto const valid = gfc::validate_curve_points(
-        std::span<gfc::CurvePoint const> { points.data(), points.size() }, ec);
+        std::span<gfc::CurvePoint const> { points.data(), points.size() },
+        kMaxTemperature,
+        ec);
 
     EXPECT(!valid);
     EXPECT(ec == gfc::ErrorCodes::negative_fan_curve);
@@ -24,7 +28,9 @@ auto should_fail_validation_for_duplicate_temperature_point()
 
     std::error_code ec;
     auto const valid = gfc::validate_curve_points(
-        std::span<gfc::CurvePoint const> { points.data(), points.size() }, ec);
+        std::span<gfc::CurvePoint const> { points.data(), points.size() },
+        kMaxTemperature,
+        ec);
 
     EXPECT(!valid);
     EXPECT(ec == gfc::ErrorCodes::duplicate_temperature);
@@ -36,10 +42,26 @@ auto should_fail_validation_for_out_of_order_temperature_point()
 
     std::error_code ec;
     auto const valid = gfc::validate_curve_points(
-        std::span<gfc::CurvePoint const> { points.data(), points.size() }, ec);
+        std::span<gfc::CurvePoint const> { points.data(), points.size() },
+        kMaxTemperature,
+        ec);
 
     EXPECT(!valid);
     EXPECT(ec == gfc::ErrorCodes::temperature_order);
+}
+
+auto should_fail_validation_for_exceeding_temperature()
+{
+    std::array<gfc::CurvePoint, 2> points = { { { 30, 30 }, { 90, 100 } } };
+
+    std::error_code ec;
+    auto const valid = gfc::validate_curve_points(
+        std::span<gfc::CurvePoint const> { points.data(), points.size() },
+        kMaxTemperature,
+        ec);
+
+    EXPECT(!valid);
+    EXPECT(ec == gfc::ErrorCodes::max_temperature_exceeded);
 }
 
 auto should_pass_validation()
@@ -48,7 +70,9 @@ auto should_pass_validation()
 
     std::error_code ec;
     auto const valid = gfc::validate_curve_points(
-        std::span<gfc::CurvePoint const> { points.data(), points.size() }, ec);
+        std::span<gfc::CurvePoint const> { points.data(), points.size() },
+        kMaxTemperature,
+        ec);
 
     EXPECT(valid);
     EXPECT(!ec);
@@ -60,5 +84,6 @@ auto main() -> int
         { TEST(should_fail_validation_for_negative_slope),
           TEST(should_fail_validation_for_duplicate_temperature_point),
           TEST(should_fail_validation_for_out_of_order_temperature_point),
+          TEST(should_fail_validation_for_exceeding_temperature),
           TEST(should_pass_validation) });
 }

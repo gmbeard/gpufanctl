@@ -70,7 +70,8 @@ auto app(gfc::Parameters const& params) -> void
     using namespace std::chrono_literals;
 
     auto const slopes = gfc::parse_curve(params.curve_points_data,
-                                         gfc::CommaOrWhiteSpaceDelimiter {});
+                                         gfc::CommaOrWhiteSpaceDelimiter {},
+                                         params.max_temperature);
 
     if (params.mode == gfc::app::Mode::print_fan_curve) {
         print_fan_curve(slopes);
