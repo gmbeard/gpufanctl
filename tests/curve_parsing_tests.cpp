@@ -46,7 +46,8 @@ auto should_parse_curve_spec() -> void
 {
     std::string_view const input = R"#( 35:30,
         60:50,		 80:100 )#";
-    auto curve = gfc::parse_curve(input, gfc::CommaOrWhiteSpaceDelimiter {});
+    auto curve =
+        gfc::parse_curve(input, gfc::CommaOrWhiteSpaceDelimiter {}, 80lu);
 
     EXPECT(curve.size() == 2);
 
@@ -63,7 +64,7 @@ auto should_parse_curve_spec() -> void
 
 auto should_parse_empty_curve_spec() -> void
 {
-    auto curve = gfc::parse_curve("", ',');
+    auto curve = gfc::parse_curve("", ',', 80lu);
     EXPECT(curve.size() == 0);
 }
 

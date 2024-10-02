@@ -58,3 +58,11 @@ Shows this help message and exits
 \fB--no-pidfile\fP
 Don't write the PID file at /var/run/gpufanctl.pid 
 .TP
+\fB--max-temperature <ARG>\fP
+Set the maximum temperature allowed to ARG. Default is 80. \fBWARNING:\fP setting
+this to a higher value carries a risk of physical damage due to overheating.
+.TP
+\fB--force\fP
+Required when setting the \fB--max-temperature\fP above the default value. This acts
+as user acknowledgement of the risk of damage due to overheating.
+.TP

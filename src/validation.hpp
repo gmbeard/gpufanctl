@@ -8,6 +8,7 @@
 namespace gfc
 {
 auto validate_curve_points(std::span<CurvePoint const> points,
+                           std::size_t max_temperature,
                            std::error_code& ec) noexcept -> bool;
 }
 

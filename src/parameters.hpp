@@ -2,6 +2,7 @@
 #define GPUFANCTL_PARAMETERS_HPP_INCLUDED
 
 #include "cmdline.hpp"
+#include "cmdline_validation.hpp"
 #include "errors.hpp"
 #include <algorithm>
 #include <charconv>
@@ -11,6 +12,7 @@
 namespace gfc
 {
 constexpr std::size_t const kDefaultIntervalSeconds = 5;
+constexpr std::size_t const kDefaultMaxTemperature = 80;
 
 namespace cmdline
 {
@@ -26,6 +28,8 @@ enum class Flags
     verbose,
     print_help,
     no_pidfile,
+    max_temperature,
+    force,
 };
 
 FlagDefinition<Flags> const flag_defs[] = {
@@ -55,6 +59,13 @@ FlagDefinition<Flags> const flag_defs[] = {
     { Flags::print_fan_curve, 'p', "print-fan-curve", FlagArgument::none },
     { Flags::print_help, 'h', "help", FlagArgument::none },
     { Flags::no_pidfile, 0, "no-pidfile", FlagArgument::none },
+    { Flags::max_temperature,
+      0,
+      "max-temperature",
+      FlagArgument::required,
+      {},
+      validation::is_integer<Flags>() },
+    { Flags::force, 0, "force", FlagArgument::none },
 };
 
 auto get_flag_description(Flags flag) noexcept -> char const*;
@@ -90,6 +101,7 @@ struct Parameters
     app::DiagnosticLevel diagnostic_level { app::DiagnosticLevel::normal };
     bool output_metrics { false };
     bool use_pidfile { true };
+    std::size_t max_temperature { kDefaultMaxTemperature };
 };
 
 template <typename T>
@@ -161,6 +173,19 @@ set_parameters(CmdLine<cmdline::Flags, Allocator> const& cmdline,
 
     params.output_metrics = cmdline.has_flag(cmdline::Flags::output_metrics);
     params.use_pidfile = !cmdline.has_flag(cmdline::Flags::no_pidfile);
+
+    if (auto const& flag = cmdline.get_flag(cmdline::Flags::max_temperature);
+        flag) {
+        if (!convert_to_number(std::get<1>(*flag), params.max_temperature)) {
+            ec = make_error_code(ErrorCodes::invalid_flag_value);
+            return false;
+        }
+        if (params.max_temperature > kDefaultMaxTemperature &&
+            !cmdline.has_flag(cmdline::Flags::force)) {
+            ec = make_error_code(ErrorCodes::force_required_to_set_temperature);
+            return false;
+        }
+    }
 
     return true;
 }

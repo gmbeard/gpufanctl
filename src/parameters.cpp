@@ -26,6 +26,10 @@ auto get_flag_description(Flags flag) noexcept -> char const*
             Must be between 1 and 5 (inclusive). Default 5.)#";
     case Flags::no_pidfile:
         return R"#(Don't write the PID file at /var/run/gpufanctl.pid)#";
+    case Flags::max_temperature:
+        return R"#(Set the maximum temperature allowed to ARG. Default is 80)#";
+    case Flags::force:
+        return R"#(Required when setting the --max-temperature above the default value)#";
     }
 
     return "";

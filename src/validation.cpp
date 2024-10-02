@@ -37,6 +37,7 @@ auto validate_slope(gfc::CurvePoint const& first,
 namespace gfc
 {
 auto validate_curve_points(std::span<CurvePoint const> points,
+                           std::size_t max_temperature,
                            std::error_code& ec) noexcept -> bool
 {
     if (!points.size()) {
@@ -58,6 +59,10 @@ auto validate_curve_points(std::span<CurvePoint const> points,
             }
             if (first.fan_speed > 100 || second.fan_speed > 100) {
                 ec = make_error_code(ErrorCodes::invalid_fan_speed);
+                return;
+            }
+            if (second.temperature > max_temperature) {
+                ec = make_error_code(ErrorCodes::max_temperature_exceeded);
                 return;
             }
             validate_slope(first, second, ec);

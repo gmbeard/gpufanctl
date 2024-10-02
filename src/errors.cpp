@@ -25,6 +25,13 @@ auto ErrorCategory::message(int condition) const -> std::string
         return "Fan speed value outside acceptable range";
     case ErrorCodes::cmdline_invalid_interval:
         return "Invalid interval length value";
+    case ErrorCodes::max_temperature_exceeded:
+        return "Curve point temperature exceeds max. temperature";
+    case gfc::ErrorCodes::force_required_to_set_temperature:
+        return "Warning: setting maximum temperature above the default. Use "
+               "--force if this is intentional";
+    case ErrorCodes::invalid_flag_value:
+        return "Invalid flag argument";
     }
 
     return "Unknown";

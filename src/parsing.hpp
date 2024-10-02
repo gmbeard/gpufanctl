@@ -46,6 +46,7 @@ template <typename PointDelimiter = char,
           typename Allocator = std::allocator<Slope>>
 auto parse_curve(std::string_view input,
                  PointDelimiter const& delimiter,
+                 std::size_t max_temperature,
                  Allocator const& alloc = Allocator {})
     -> std::vector<Slope, Allocator>
 {
@@ -59,8 +60,13 @@ auto parse_curve(std::string_view input,
         throw std::system_error { ec };
     }
 
-    if (!validate_curve_points({ points.data(), points.size() }, ec)) {
+    if (!validate_curve_points(
+            { points.data(), points.size() }, max_temperature, ec)) {
         throw std::system_error { ec };
+    }
+
+    if (points.size() && points.back().temperature < max_temperature) {
+        points.emplace_back(static_cast<unsigned int>(max_temperature), 100u);
     }
 
     using SlopeAlloc =
