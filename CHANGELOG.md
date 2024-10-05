@@ -1,3 +1,9 @@
+## 0.1.1
+### PATCH Changes:
+- Bumps exios depdendency to version `0.4.1`
+- Fixes the installation path for the manpage. Now installs to the `$MANDIR/man1` subfolder.
+- Increases code diagnostic warning level and adds hardening for release builds
+
 ## 0.1.0
 ### Initial release:
 - Current support for NVIDIA GPUs only.
