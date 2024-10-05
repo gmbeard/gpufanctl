@@ -42,10 +42,10 @@ auto wait_any(InputIterator first, InputIterator last, Completion&& completion)
                 }
 
                 if (state->finished == state->outstanding) {
-                    auto completion = std::move(state->completion);
+                    auto comp = std::move(state->completion);
                     auto operation_result = std::move(state->result);
                     state.reset();
-                    std::move(completion)(std::move(operation_result));
+                    std::move(comp)(std::move(operation_result));
                     return;
                 }
 

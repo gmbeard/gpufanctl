@@ -1,6 +1,7 @@
 include(FetchContent)
-set(GPUFANCTL_EXIOS_VERSION "0.4.0")
+set(GPUFANCTL_EXIOS_VERSION "0.4.1")
 
+set(EXIOS_DISABLE_CPPCHECK ON)
 if(GPUFANCTL_USE_LOCAL_DEPENDENCIES)
     FetchContent_Declare(
         Exios

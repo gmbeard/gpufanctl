@@ -52,8 +52,6 @@ auto should_parse_cmdline_with_no_flag_defs() -> void
     using namespace std::string_literals;
     using namespace std::literals::string_view_literals;
 
-    using CmdLine = gfc::CmdLine<gfc::cmdline::Flags, std::allocator<void>>;
-
     char const* argv[] { "one", "two", "three", "--", "exec" };
     int argc = static_cast<int>(std::size(argv));
 

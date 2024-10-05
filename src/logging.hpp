@@ -44,6 +44,8 @@ auto log(LogLevel level, char const* fmt, Args&&... args) noexcept -> void
     case LogLevel::error:
         dprintf(STDERR_FILENO, "[ERROR] ");
         break;
+    case LogLevel::none:
+        return;
     }
 
     if constexpr (sizeof...(args) == 0) {
