@@ -195,6 +195,7 @@ auto main(int argc, char const** argv) -> int
     switch (params.diagnostic_level) {
     case gfc::app::DiagnosticLevel::silent:
         gfc::set_minimum_log_level(gfc::LogLevel::none);
+        break;
     case gfc::app::DiagnosticLevel::quiet:
         gfc::set_minimum_log_level(gfc::LogLevel::error);
         break;

@@ -44,7 +44,7 @@ auto write_pid_file() -> void
 
     auto pid_string = std::to_string(::getpid());
     auto bytes_written = 0;
-    while (bytes_written < pid_string.size()) {
+    while (static_cast<std::size_t>(bytes_written) < pid_string.size()) {
         auto const n = ::write(fd,
                                pid_string.data() + bytes_written,
                                pid_string.size() - bytes_written);

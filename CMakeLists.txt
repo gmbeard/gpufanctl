@@ -29,6 +29,8 @@ if (CMAKE_BUILD_TYPE STREQUAL "")
     set(CMAKE_BUILD_TYPE "Release")
 endif()
 
+set(CMAKE_CXX_FLAGS_RELEASE "-O2 -fstack-protector-strong -D_FORTIFY_SOURCE=2")
+
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 20)
@@ -42,6 +44,7 @@ if (GPUFANCTL_ENABLE_ASAN)
     add_link_options(-fsanitize=address)
 endif()
 
+add_compile_options(-Wall -Werror -Wextra -Wshadow)
 add_subdirectory(src)
 
 if(GPUFANCTL_ENABLE_TESTS)
@@ -52,4 +55,4 @@ endif()
 install(TARGETS gpufanctl)
 install(
     FILES gpufanctl.1
-    DESTINATION "${CMAKE_INSTALL_MANDIR}")
+    DESTINATION "${CMAKE_INSTALL_MANDIR}/man1")
