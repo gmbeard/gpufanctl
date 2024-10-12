@@ -9,6 +9,10 @@ project(
     VERSION ${current_version}
 )
 
+if (CMAKE_BUILD_TYPE STREQUAL "")
+    set(CMAKE_BUILD_TYPE "Release")
+endif()
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 20)
 
@@ -21,6 +25,12 @@ option(
 option(
     GPUFANCTL_ENABLE_ASAN
     "Enable ASan for ${PROJECT_NAME}"
+    OFF
+)
+
+option(
+    GPUFANCTL_ENABLE_FUZZ_TARGETS
+    "Enable fuzzing targets"
     OFF
 )
 
@@ -50,6 +60,11 @@ add_subdirectory(src)
 if(GPUFANCTL_ENABLE_TESTS)
     enable_testing()
     add_subdirectory(tests)
+endif()
+
+if(GPUFANCTL_ENABLE_FUZZ_TARGETS)
+    message(STATUS "Enabling fuzz targets with ${CMAKE_CXX_COMPILER} compiler")
+    add_subdirectory(fuzzing)
 endif()
 
 install(TARGETS gpufanctl)

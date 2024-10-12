@@ -1,0 +1,133 @@
+{
+    "version": 8,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 28,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "default",
+            "displayName": "Default",
+            "binaryDir": "${sourceDir}/build",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": {
+                    "type": "STRING",
+                    "value": "Release"
+                }
+            }
+        },
+        {
+            "name": "test",
+            "displayName": "With Tests",
+            "inherits": "default",
+            "cacheVariables": {
+                "GPUFANCTL_ENABLE_TESTS": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        },
+        {
+            "name": "fuzzing",
+            "displayName": "Fuzzing Build",
+            "inherits": "default",
+            "cacheVariables": {
+                "GPUFANCTL_ENABLE_FUZZ_TARGETS": {
+                    "type": "BOOL",
+                    "value": "ON"
+                },
+                "CMAKE_BUILD_TYPE": {
+                    "type": "STRING",
+                    "value": "Release"
+                },
+                "CMAKE_CXX_COMPILER": {
+                    "type": "STRING",
+                    "value": "afl-g++-fast"
+                },
+                "CMAKE_CXX_COMPILER_AR": {
+                    "type": "STRING",
+                    "value": "ar"
+                },
+                "CMAKE_CXX_COMPILER_RANLIB": {
+                    "type": "STRING",
+                    "value": "ranlib"
+                }
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "default",
+            "configurePreset": "default"
+        },
+        {
+            "name": "test",
+            "configurePreset": "test"
+        },
+        {
+            "name": "fuzzing",
+            "configurePreset": "fuzzing",
+            "targets": [
+                "fuzz-curve"
+            ]
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "test",
+            "configurePreset": "test",
+            "output": {
+                "outputOnFailure": true
+            }
+        }
+    ],
+    "workflowPresets": [
+        {
+            "name": "default",
+            "displayName": "Default",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "default"
+                },
+                {
+                    "type": "build",
+                    "name": "default"
+                }
+            ]
+        },
+        {
+            "name": "test",
+            "displayName": "Test",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "test"
+                },
+                {
+                    "type": "build",
+                    "name": "test"
+                },
+                {
+                    "type": "test",
+                    "name": "test"
+                }
+            ]
+        },
+        {
+            "name": "fuzzing",
+            "displayName": "Fuzzing",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "fuzzing"
+                },
+                {
+                    "type": "build",
+                    "name": "fuzzing"
+                }
+            ]
+        }
+    ]
+}

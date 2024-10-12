@@ -1,5 +1,6 @@
-build/
+build*/
 .cache/
 .private/
 dist/
 deps/
+CMakeUserPresets.json
