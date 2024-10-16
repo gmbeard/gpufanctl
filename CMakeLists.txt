@@ -35,9 +35,7 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 20)
 
-include(Dependencies)
 include(GNUInstallDirs)
-find_package(Exios REQUIRED)
 
 if (GPUFANCTL_ENABLE_ASAN)
     add_compile_options(-fsanitize=address)

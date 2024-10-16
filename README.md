@@ -68,16 +68,3 @@ step `3.` with...
 
 ... replacing `<YOUR_INSTALLATION_FOLDER>` with the desired installation path. `gpufanctl` will then
 be installed to `<YOUR_INSTALLATION_FOLDER>/bin/gpufanctl`
-
-### Notes for Packagers
-
-If you wish to package `gpufanctl` for a distribution, you should be aware that the default build
-steps will automatically pull in the `exios` dependency via `git` (The method used is actually *CMake*'s
-`FetchContent` module). If your packaging system / CI doesn't allow pulling in remote dependencies via this
-method, then you can follow these steps...
-
-- Examine the `exios` version required in the `./cmake/Dependencies.cmake` file. It will be the value set
-  for the `GPUFANCTL_EXIOS_VERSION` variable.
-- Have your build system pull in this dependency in addition to the main project's release tarball, using `https://github.com/gmbeard/exios/releases/download/${version}/exios-source-${version}.tar.xz`, replacing `${version}` with whatever `GPUFANCTL_EXIOS_VERSION` is set to, and place it into the `deps/exios` subfolder within the project directory, 
-- Configure the CMake project using `$ cmake -DGPUFANCTL_USE_LOCAL_DEPENDENCIES=ON ..`.
-- Build the source as normal.
