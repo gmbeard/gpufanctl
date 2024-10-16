@@ -17,10 +17,14 @@ target_sources(
     gpufanctl-core
     PRIVATE
 
+    assertion.cpp
     cmdline.cpp
     curve.cpp
     delimiter.cpp
     errors.cpp
+
+    execution/single_thread_context.cpp
+
     logging.cpp
     nvml.cpp
     parameters.cpp
@@ -28,14 +32,7 @@ target_sources(
     pid.cpp
     signal.cpp
     slope.cpp
-    sticky_cancel_timer.cpp
     validation.cpp
-)
-
-target_link_libraries(
-    gpufanctl-core
-    PUBLIC
-    Exios::exios
 )
 
 target_include_directories(

@@ -1,11 +1,12 @@
 #include "logging.hpp"
+#include <atomic>
 #include <cstdint>
 
 namespace
 {
-auto log_level() noexcept -> std::uint8_t&
+auto log_level() noexcept -> std::atomic_uint8_t&
 {
-    static std::uint8_t val = 0;
+    static std::atomic_uint8_t val = 0;
     return val;
 }
 } // namespace
