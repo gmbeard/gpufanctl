@@ -1,3 +1,8 @@
+## 0.2.0
+### MINOR Changes:
+- Adds an alternative implementation of async/timer operations that models `std::execution`
+- Removes the external dependency on `exios`
+
 ## 0.1.1
 ### PATCH Changes:
 - Bumps exios depdendency to version `0.4.1`
