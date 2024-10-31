@@ -2,8 +2,7 @@
 #include "config.hpp"
 #include "curve.hpp"
 #include "delimiter.hpp"
-#include "exios/exios.hpp"
-#include "interval.hpp"
+#include "execution.hpp"
 #include "logging.hpp"
 #include "nvml.h"
 #include "nvml.hpp"
@@ -13,7 +12,6 @@
 #include "scope_guard.hpp"
 #include "signal.hpp"
 #include "slope.hpp"
-#include "sticky_cancel_timer.hpp"
 #include <array>
 #include <cstddef>
 #include <cstdio>
@@ -65,9 +63,21 @@ auto print_fan_curve(std::vector<gfc::Slope, Allocator> const& curve) -> void
     }
 }
 
+auto next_delay(auto const& elapsed, auto const& interval) noexcept
+{
+    if (elapsed > interval)
+        return interval - (elapsed % interval);
+
+    return interval - elapsed;
+};
+
 auto app(gfc::Parameters const& params) -> void
 {
     using namespace std::chrono_literals;
+    namespace ch = std::chrono;
+    namespace ex = gfc::execution;
+
+    using clock_type = std::chrono::steady_clock;
 
     auto const slopes = gfc::parse_curve(params.curve_points_data,
                                          gfc::CommaOrWhiteSpaceDelimiter {},
@@ -117,51 +127,76 @@ auto app(gfc::Parameters const& params) -> void
 
     GFC_SCOPE_GUARD([&] { reset_fans(device, fan_count); });
 
-    exios::ContextThread ctx;
-    gfc::StickyCancelTimer timer { ctx };
-    std::array<exios::Signal, 2> signals { { { ctx, SIGINT },
-                                             { ctx, SIGTERM } } };
-    auto cancel_signals = [&]() {
-        for (auto& sig : signals)
-            sig.cancel();
-    };
+    gfc::execution::single_thread_context work_context;
+    gfc::execution::single_thread_context signal_context;
 
-    gfc::wait_any(
-        signals.begin(), signals.end(), [&](exios::SignalResult result) {
-            if (!result) {
-                auto error = exios::get_error(result);
-                if (error == std::errc::operation_canceled)
-                    return;
+    work_context.run();
+    signal_context.run();
 
-                throw error;
-            }
+    GFC_SCOPE_GUARD([&] {
+        signal_context.stop();
+        work_context.stop();
+    });
 
-            auto const r = exios::get_value(result);
-            gfc::log(gfc::LogLevel::info,
-                     "Signal %s received. Stopping",
-                     r.ssi_signo == SIGINT ? "SIGINT" : "SIGTERM");
-            timer.cancel();
-        });
+    auto work_start = clock_type::now();
 
-    gfc::set_interval(
-        timer,
-        std::chrono::milliseconds(params.interval_length * 1000),
-        gfc::curve(device,
-                   fan_count,
-                   std::span<gfc::Slope const> { slopes.data(), slopes.size() },
-                   params.output_metrics),
-        [&](exios::TimerOrEventIoResult result) {
-            if (!result && result.error() != std::errc::operation_canceled) {
-                auto msg = result.error().message();
-                gfc::log(gfc::LogLevel::error,
-                         "Curve interval error: %s",
-                         msg.c_str());
-                cancel_signals();
-            }
-        });
+    // clang-format off
+    auto work = ex::stop_when(
+        /* NOTE:
+         * Loop:
+         * - Record the current loop start time
+         * - Schedule execution onto the work thread context
+         * - Execute the curve function
+         * - Delay the loop for the remainder of the interval
+         * - Repeat forever
+         */
+        ex::repeat_effect(
+            ex::then(
+                ex::just_from([&] { work_start = clock_type::now(); }),
+                ex::then(
+                    ex::schedule(get_scheduler(work_context)),
+                    ex::then(
+                        ex::just_from(
+                            gfc::curve(device,
+                                       fan_count,
+                                       std::span<gfc::Slope const> {
+                                           slopes.data(),
+                                           slopes.size()
+                                       },
+                                       params.output_metrics)
+                        ),
+                        ex::defer([&] {
+                            return ex::schedule_after(
+                                ex::inline_delay_scheduler {},
+                                next_delay(
+                                    clock_type::now() - work_start,
+                                    ch::milliseconds(params.interval_length * 1000))
+                            );
+                        })
+                    )
+                )
+            )
+        ),
+        /* NOTE:
+         * Stop condition:
+         * - Schedule signal handler execution onto the signal thread context
+         * - Wait for any of the signals
+         */
+        ex::then(
+            ex::schedule(get_scheduler(signal_context)),
+            ex::then(
+                ex::schedule(ex::inline_signal_scheduler(SIGINT, SIGTERM)),
+                ex::just_from([] {
+                    gfc::log(gfc::LogLevel::info, "Signal received. Stopping...");
+                })
+            )
+        )
+    );
+    // clang-format on
 
     gfc::log(gfc::LogLevel::info, "Running");
-    static_cast<void>(ctx.run());
+    ex::sync_wait(std::move(work));
+    gfc::log(gfc::LogLevel::info, "Stopped");
 }
 
 /*

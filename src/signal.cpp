@@ -1,4 +1,5 @@
 #include "signal.hpp"
+#include <signal.h>
 #include <system_error>
 
 namespace gfc

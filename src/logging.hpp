@@ -1,9 +1,9 @@
 #ifndef GPUFANCTL_LOGGING_HPP_INCLUDED
 #define GPUFANCTL_LOGGING_HPP_INCLUDED
 
-#include <cinttypes>
 #include <cstdint>
 #include <cstdio>
+#include <mutex>
 #include <unistd.h>
 #include <utility>
 
@@ -12,7 +12,8 @@ namespace gfc
 namespace detail
 {
 auto min_log_level() noexcept -> std::uint8_t;
-}
+inline std::mutex logging_mutex_ {};
+} // namespace detail
 
 enum class LogLevel : std::uint8_t
 {
@@ -30,6 +31,8 @@ auto log(LogLevel level, char const* fmt, Args&&... args) noexcept -> void
 {
     if (detail::min_log_level() > static_cast<std::uint8_t>(level))
         return;
+
+    std::unique_lock lock { detail::logging_mutex_ };
 
     switch (level) {
     case LogLevel::debug:
