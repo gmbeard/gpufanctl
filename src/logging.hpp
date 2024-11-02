@@ -52,7 +52,7 @@ auto log(LogLevel level, char const* fmt, Args&&... args) noexcept -> void
     }
 
     if constexpr (sizeof...(args) == 0) {
-        dprintf(STDERR_FILENO, fmt);
+        dprintf(STDERR_FILENO, "%s", fmt);
     }
     else {
         dprintf(STDERR_FILENO, fmt, std::forward<Args>(args)...);
