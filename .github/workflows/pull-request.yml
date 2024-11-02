@@ -1,0 +1,30 @@
+name: Pull Request
+on: 
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  configure-build-test:
+    runs-on: ubuntu-latest 
+    steps:
+      - uses: actions/checkout@v4
+      - name: Params
+        id: strings
+        shell: bash
+        run: |
+          echo "build-output-dir=${{ github.workspace }}/build" >> $GITHUB_OUTPUT
+          echo "build-threads=$(nproc 2>/dev/null || echo '1')" >> $GITHUB_OUTPUT
+      - name: Configure
+        run: >
+          cmake -S ${{ github.workspace }}
+          -B ${{ steps.strings.outputs.build-output-dir }}
+          -DGPUFANCTL_ENABLE_TESTS=ON
+      - name: Build
+        run: >
+          cmake --build ${{ steps.strings.outputs.build-output-dir }}
+          -j${{ steps.strings.outputs.build-threads }}
+      - name: Test
+        run: >
+          ctest --test-dir ${{ steps.strings.outputs.build-output-dir }}
+          --output-on-failure

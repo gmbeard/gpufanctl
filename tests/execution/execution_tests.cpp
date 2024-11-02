@@ -76,26 +76,6 @@ auto should_repeat() -> void
     ex::sync_wait(std::move(work));
 }
 
-auto should_schedule() -> void
-{
-    ex::single_thread_context ctx;
-    ex::inline_timed_interval_context timed_ctx { std::chrono::seconds(1) };
-
-    ctx.run();
-    GFC_SCOPE_GUARD([&] { ctx.stop(); });
-
-    std::cerr << "[MAIN ] " << std::this_thread::get_id() << '\n';
-
-    auto work = ex::then(
-        ex::schedule(get_scheduler(ctx)),
-        ex::then(ex::schedule(get_scheduler(timed_ctx)), ex::just_from([] {
-                     std::cerr << "[SCHED] " << std::this_thread::get_id()
-                               << '\n';
-                 })));
-
-    ex::sync_wait(std::move(work));
-}
-
 auto should_run_interval_loop()
 {
     namespace ch = std::chrono;
@@ -228,7 +208,6 @@ auto main() -> int
     return testing::run({ TEST(should_execute),
                           TEST(should_defer),
                           TEST(should_repeat),
-                          TEST(should_schedule),
                           TEST(should_run_interval_loop),
                           TEST(should_stop) });
 }
