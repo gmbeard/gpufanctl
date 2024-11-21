@@ -115,6 +115,11 @@ auto app(gfc::Parameters const& params) -> void
 
     auto device = gfc::nvml::get_device_handle_by_index(0);
 
+    if (params.enable_persistence_mode) {
+        gfc::log(gfc::LogLevel::info, "Enabling persistence mode");
+        gfc::nvml::set_device_persistence_mode(device, NVML_FEATURE_ENABLED);
+    }
+
     auto const fan_count = gfc::nvml::get_device_fan_count(device);
     if (fan_count < 1) {
         throw std::runtime_error { "Device has no fans" };

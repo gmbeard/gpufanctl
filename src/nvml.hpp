@@ -18,6 +18,7 @@ struct NVML
     PFN_nvmlDeviceSetFanSpeed_v2 nvmlDeviceSetFanSpeed_v2;
     PFN_nvmlDeviceSetDefaultFanSpeed_v2 nvmlDeviceSetDefaultFanSpeed_v2;
     PFN_nvmlDeviceGetNumFans nvmlDeviceGetNumFans;
+    PFN_nvmlDeviceSetPersistenceMode nvmlDeviceSetPersistenceMode;
 };
 
 auto lib() -> NVML const&;
@@ -35,6 +36,8 @@ auto set_device_fan_speed(nvmlDevice_t device,
 auto set_device_default_fan_speed(nvmlDevice_t device, unsigned int fan_index)
     -> void;
 auto get_device_fan_count(nvmlDevice_t device) -> unsigned int;
+auto set_device_persistence_mode(nvmlDevice_t device, nvmlEnableState_t state)
+    -> void;
 } // namespace gfc::nvml
 
 #endif // GPUFANCTL_NVML_HPP_INCLUDED

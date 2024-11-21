@@ -141,6 +141,15 @@ typedef enum nvmlReturn_enum
 } nvmlReturn_t;
 
 /**
+ * Generic enable/disable enum.
+ */
+typedef enum nvmlEnableState_enum
+{
+    NVML_FEATURE_DISABLED = 0, //!< Feature disabled
+    NVML_FEATURE_ENABLED = 1   //!< Feature enabled
+} nvmlEnableState_t;
+
+/**
  * Temperature sensors.
  */
 typedef enum nvmlTemperatureSensors_enum
@@ -456,6 +465,51 @@ typedef nvmlReturn_t (*PFN_nvmlDeviceSetDefaultFanSpeed_v2)(nvmlDevice_t device,
  */
 typedef nvmlReturn_t (*PFN_nvmlDeviceGetNumFans)(nvmlDevice_t device,
                                                  unsigned int* numFans);
+
+/**
+ * Set the persistence mode for the device.
+ *
+ * For all products.
+ * For Linux only.
+ * Requires root/admin permissions.
+ *
+ * The persistence mode determines whether the GPU driver software is torn down
+ * after the last client exits.
+ *
+ * This operation takes effect immediately. It is not persistent across reboots.
+ * After each reboot the persistence mode is reset to "Disabled".
+ *
+ * See \ref nvmlEnableState_t for available modes.
+ *
+ * After calling this API with mode set to NVML_FEATURE_DISABLED on a device
+ * that has its own NUMA memory, the given device handle will no longer be
+ * valid, and to continue to interact with this device, a new handle should be
+ * obtained from one of the nvmlDeviceGetHandleBy*() APIs. This limitation is
+ * currently only applicable to devices that have a coherent NVLink connection
+ * to system memory.
+ *
+ * @param device                               The identifier of the target
+ * device
+ * @param mode                                 The target persistence mode
+ *
+ * @return
+ *         - \ref NVML_SUCCESS                 if the persistence mode was set
+ *         - \ref NVML_ERROR_UNINITIALIZED     if the library has not been
+ * successfully initialized
+ *         - \ref NVML_ERROR_INVALID_ARGUMENT  if \a device is invalid or \a
+ * mode is invalid
+ *         - \ref NVML_ERROR_NOT_SUPPORTED     if the device does not support
+ * this feature
+ *         - \ref NVML_ERROR_NO_PERMISSION     if the user doesn't have
+ * permission to perform this operation
+ *         - \ref NVML_ERROR_GPU_IS_LOST       if the target GPU has fallen off
+ * the bus or is otherwise inaccessible
+ *         - \ref NVML_ERROR_UNKNOWN           on any unexpected error
+ *
+ * @see nvmlDeviceGetPersistenceMode()
+ */
+typedef nvmlReturn_t (*PFN_nvmlDeviceSetPersistenceMode)(
+    nvmlDevice_t device, nvmlEnableState_t mode);
 
 #ifdef __cplusplus
 }

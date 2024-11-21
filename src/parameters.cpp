@@ -30,6 +30,8 @@ auto get_flag_description(Flags flag) noexcept -> char const*
         return R"#(Set the maximum temperature allowed to ARG. Default is 80)#";
     case Flags::force:
         return R"#(Required when setting the --max-temperature above the default value)#";
+    case Flags::persistence_mode:
+        return R"#(Enable persistence mode)#";
     }
 
     return "";
