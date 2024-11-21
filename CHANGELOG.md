@@ -1,3 +1,11 @@
+## 0.3.0
+### MINOR Changes:
+- Adds a `-P` / `--persistence-mode` cmdline option to optionally enable "Persistence Mode" when the utility is invoked.
+
+### PATCH Changes:
+- Fixes build error in tests
+- Fixes build error with use of `dprintf(...)` without format args
+
 ## 0.2.0
 ### MINOR Changes:
 - Adds an alternative implementation of async/timer operations that models `std::execution`
