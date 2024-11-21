@@ -30,6 +30,7 @@ enum class Flags
     no_pidfile,
     max_temperature,
     force,
+    persistence_mode,
 };
 
 FlagDefinition<Flags> const flag_defs[] = {
@@ -66,6 +67,11 @@ FlagDefinition<Flags> const flag_defs[] = {
       {},
       validation::is_integer<Flags>() },
     { Flags::force, 0, "force", FlagArgument::none },
+    { Flags::persistence_mode,
+      'P',
+      "persistence-mode",
+      FlagArgument::none,
+      { Flags::print_fan_curve } },
 };
 
 auto get_flag_description(Flags flag) noexcept -> char const*;
@@ -102,6 +108,7 @@ struct Parameters
     bool output_metrics { false };
     bool use_pidfile { true };
     std::size_t max_temperature { kDefaultMaxTemperature };
+    bool enable_persistence_mode { false };
 };
 
 template <typename T>
@@ -185,6 +192,10 @@ set_parameters(CmdLine<cmdline::Flags, Allocator> const& cmdline,
             ec = make_error_code(ErrorCodes::force_required_to_set_temperature);
             return false;
         }
+    }
+
+    if (cmdline.has_flag(cmdline::Flags::persistence_mode)) {
+        params.enable_persistence_mode = true;
     }
 
     return true;

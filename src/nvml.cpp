@@ -41,6 +41,9 @@ auto load_nvml() -> NVML
                       "nvmlDeviceSetDefaultFanSpeed_v2",
                       lib);
     TRY_ATTACH_SYMBOL(&nvml.nvmlDeviceGetNumFans, "nvmlDeviceGetNumFans", lib);
+    TRY_ATTACH_SYMBOL(&nvml.nvmlDeviceSetPersistenceMode,
+                      "nvmlDeviceSetPersistenceMode",
+                      lib);
 
     return nvml;
 }
@@ -52,7 +55,10 @@ auto lib() -> NVML const&
     return lib;
 }
 
-auto init() -> void { CHECK_NVML_RESULT(lib().nvmlInit_v2(), "init"); }
+auto init() -> void
+{
+    CHECK_NVML_RESULT(lib().nvmlInit_v2(), "init");
+}
 
 auto shutdown() noexcept -> void
 {
@@ -110,4 +116,10 @@ auto get_device_fan_count(nvmlDevice_t device) -> unsigned int
     return count;
 }
 
+auto set_device_persistence_mode(nvmlDevice_t device, nvmlEnableState_t state)
+    -> void
+{
+    CHECK_NVML_RESULT(lib().nvmlDeviceSetPersistenceMode(device, state),
+                      "set_device_persistence_mode");
+}
 } // namespace gfc::nvml
