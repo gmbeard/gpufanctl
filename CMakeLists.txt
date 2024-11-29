@@ -50,6 +50,8 @@ if(GPUFANCTL_ENABLE_TESTS)
     add_subdirectory(tests)
 endif()
 
+add_subdirectory(init)
+
 install(TARGETS gpufanctl)
 install(
     FILES gpufanctl.1
