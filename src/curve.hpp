@@ -25,6 +25,7 @@ struct Curve
     std::size_t fan_count;
     std::span<Slope const> slopes;
     bool print_metrics_to_stdout { false };
+    bool dry_run { false };
     ClockType::time_point start_time { ClockType::now() };
     unsigned int previous_fan_speed {
         std::numeric_limits<unsigned int>::max()
@@ -35,6 +36,7 @@ struct Curve
 auto curve(nvmlDevice_t device,
            std::size_t fan_count,
            std::span<Slope const> slopes,
-           bool print_metrics_to_stdout = false) noexcept -> Curve;
+           bool print_metrics_to_stdout = false,
+           bool dry_run = false) noexcept -> Curve;
 } // namespace gfc
 #endif // GPUFANCTL_CURVE_HPP_INCLUDED

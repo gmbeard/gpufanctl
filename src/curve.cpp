@@ -25,7 +25,9 @@ auto Curve::operator()() -> void
         set_fan_speed(target_fan_speed);
     }
     else {
-        log(LogLevel::debug, "No fan speed change");
+        log(LogLevel::debug,
+            "Current temp. %u. No fan speed change",
+            current_temperature);
     }
 
     if (print_metrics_to_stdout) {
@@ -73,6 +75,9 @@ auto Curve::get_target_fan_speed(unsigned int current_temperature)
 
 auto Curve::set_fan_speed(unsigned int speed) -> void
 {
+    if (dry_run)
+        return;
+
     for (unsigned int i = 0; i < fan_count; ++i) {
         if (!speed) {
             nvml::set_device_default_fan_speed(device, i);
@@ -86,9 +91,12 @@ auto Curve::set_fan_speed(unsigned int speed) -> void
 auto curve(nvmlDevice_t device,
            std::size_t fan_count,
            std::span<Slope const> slopes,
-           bool print_metrics_to_stdout) noexcept -> Curve
+           bool print_metrics_to_stdout,
+           bool dry_run) noexcept -> Curve
 {
-    return Curve { device, fan_count, slopes, print_metrics_to_stdout };
+    return Curve {
+        device, fan_count, slopes, print_metrics_to_stdout, dry_run
+    };
 }
 
 } // namespace gfc

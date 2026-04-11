@@ -1,3 +1,5 @@
+find_package(Schedule REQUIRED)
+
 configure_file(
     config.hpp.in
     config.hpp
@@ -22,9 +24,8 @@ target_sources(
     curve.cpp
     delimiter.cpp
     errors.cpp
-
-    execution/single_thread_context.cpp
-
+    event_source.cpp
+    frame_timer.cpp
     logging.cpp
     nvml.cpp
     parameters.cpp
@@ -40,6 +41,12 @@ target_include_directories(
     PUBLIC
     "${CMAKE_CURRENT_LIST_DIR}"
     "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+target_link_libraries(
+    gpufanctl-core
+    PUBLIC
+    schedule::schedule
 )
 
 add_executable(

@@ -1,0 +1,3 @@
+# Remove some of the flags that get included in `compile_commands.json`...
+CompileFlags: 
+  Remove: [-fmodule-mapper=*, -fdeps-format=*, -fmodules-ts]
