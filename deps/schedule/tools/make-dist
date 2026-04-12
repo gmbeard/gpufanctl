@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+
+set -e
+
+topdir=$(cd $(dirname $0)/..; pwd)
+
+find_version() {
+    local sourcedir="${topdir}"
+    local builddir="${sourcedir}/build"
+    local cachefile="${builddir}/CMakeCache.txt"
+
+    [[ -f "${cachefile}" ]] || cmake -S "${sourcedir}" -B "${builddir}" >/dev/null
+
+    awk -F'=' '/^CMAKE_PROJECT_VERSION:/{ print $2 }' < "${cachefile}"
+}
+
+find_project_name() {
+    local sourcedir="${topdir}"
+    local builddir="${sourcedir}/build"
+    local cachefile="${builddir}/CMakeCache.txt"
+
+    [[ -f "${cachefile}" ]] || cmake -S "${sourcedir}" -B "${builddir}" >/dev/null
+
+    awk -F'=' '/^CMAKE_PROJECT_NAME:/{ print $2 }' < "${cachefile}"
+}
+
+projectname=$(find_project_name)
+version=$(find_version)
+
+cd ${topdir}
+
+[[ -d ./dist ]] && rm -rf ./dist
+mkdir ./dist
+
+tar \
+    --exclude './build*' \
+    --exclude './dist' \
+    --exclude './.private' \
+    --exclude './.git' \
+    --exclude './.github' \
+    --exclude './.cache' \
+    --transform 's;^\.;'${projectname}'-'${version}';' \
+    -cJf ./dist/${projectname}-source-${version}.tar.xz \
+    .
+
+cd ./dist
+sha256sum ${projectname}-source-${version}.tar.xz >${projectname}-source-${version}.sha256

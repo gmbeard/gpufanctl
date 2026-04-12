@@ -2,13 +2,22 @@
 #include "config.hpp"
 #include "curve.hpp"
 #include "delimiter.hpp"
-#include "execution.hpp"
+#include "event_source.hpp"
+#include "frame_timer.hpp"
 #include "logging.hpp"
 #include "nvml.h"
 #include "nvml.hpp"
 #include "parameters.hpp"
 #include "parsing.hpp"
 #include "pid.hpp"
+#include "schedule/defer.hpp"
+#include "schedule/just_from.hpp"
+#include "schedule/let.hpp"
+#include "schedule/polling_io_context.hpp"
+#include "schedule/repeat.hpp"
+#include "schedule/schedule_after.hpp"
+#include "schedule/stop_when.hpp"
+#include "schedule/sync_wait.hpp"
 #include "scope_guard.hpp"
 #include "signal.hpp"
 #include "slope.hpp"
@@ -16,14 +25,21 @@
 #include <cstddef>
 #include <cstdio>
 #include <exception>
+#include <signal.h>
 #include <span>
 #include <system_error>
+#include <thread>
 #include <unistd.h>
 #include <vector>
 
-auto reset_fans(nvmlDevice_t device, unsigned int fan_count) noexcept -> void
+auto reset_fans(nvmlDevice_t device,
+                unsigned int fan_count,
+                bool dry_run = false) noexcept -> void
 {
     gfc::log(gfc::LogLevel::info, "Resetting fans to default state");
+    if (dry_run) {
+        return;
+    }
     for (unsigned int i = 0; i < fan_count; ++i) {
         try {
             gfc::nvml::set_device_default_fan_speed(device, i);
@@ -75,9 +91,6 @@ auto app(gfc::Parameters const& params) -> void
 {
     using namespace std::chrono_literals;
     namespace ch = std::chrono;
-    namespace ex = gfc::execution;
-
-    using clock_type = std::chrono::steady_clock;
 
     auto const slopes = gfc::parse_curve(params.curve_points_data,
                                          gfc::CommaOrWhiteSpaceDelimiter {},
@@ -96,8 +109,6 @@ auto app(gfc::Parameters const& params) -> void
             gfc::remove_pid_file();
         }
     });
-
-    gfc::block_signals({ SIGINT, SIGTERM });
 
     gfc::nvml::init();
     GFC_SCOPE_GUARD([&] { gfc::nvml::shutdown(); });
@@ -130,77 +141,48 @@ auto app(gfc::Parameters const& params) -> void
              fan_count,
              (fan_count > 1 ? "s" : ""));
 
-    GFC_SCOPE_GUARD([&] { reset_fans(device, fan_count); });
+    GFC_SCOPE_GUARD([&] { reset_fans(device, fan_count, params.dry_run); });
 
-    gfc::execution::single_thread_context work_context;
-    gfc::execution::single_thread_context signal_context;
+    schedule::polling_io_context io_context;
+    gfc::event_source event_source { io_context.get_scheduler() };
 
-    work_context.run();
-    signal_context.run();
+    gfc::setup_signal_handler({ SIGINT, SIGTERM });
+
+    auto io_thread = std::thread([&] { io_context.run(); });
 
     GFC_SCOPE_GUARD([&] {
-        signal_context.stop();
-        work_context.stop();
+        io_context.stop();
+        io_thread.join();
     });
 
-    auto work_start = clock_type::now();
-
-    // clang-format off
-    auto work = ex::stop_when(
-        /* NOTE:
-         * Loop:
-         * - Record the current loop start time
-         * - Schedule execution onto the work thread context
-         * - Execute the curve function
-         * - Delay the loop for the remainder of the interval
-         * - Repeat forever
-         */
-        ex::repeat_effect(
-            ex::then(
-                ex::just_from([&] { work_start = clock_type::now(); }),
-                ex::then(
-                    ex::schedule(get_scheduler(work_context)),
-                    ex::then(
-                        ex::just_from(
-                            gfc::curve(device,
-                                       fan_count,
-                                       std::span<gfc::Slope const> {
-                                           slopes.data(),
-                                           slopes.size()
-                                       },
-                                       params.output_metrics)
-                        ),
-                        ex::defer([&] {
-                            return ex::schedule_after(
-                                ex::inline_delay_scheduler {},
-                                next_delay(
-                                    clock_type::now() - work_start,
-                                    ch::milliseconds(params.interval_length * 1000))
-                            );
-                        })
-                    )
-                )
-            )
-        ),
-        /* NOTE:
-         * Stop condition:
-         * - Schedule signal handler execution onto the signal thread context
-         * - Wait for any of the signals
-         */
-        ex::then(
-            ex::schedule(get_scheduler(signal_context)),
-            ex::then(
-                ex::schedule(ex::inline_signal_scheduler(SIGINT, SIGTERM)),
-                ex::just_from([] {
-                    gfc::log(gfc::LogLevel::info, "Signal received. Stopping...");
-                })
-            )
-        )
-    );
-    // clang-format on
+    schedule::sender auto work =
+        schedule::just_from([&] {
+            return std::make_pair(
+                gfc::curve(device,
+                           fan_count,
+                           std::span<gfc::Slope const> { slopes.data(),
+                                                         slopes.size() },
+                           params.output_metrics,
+                           params.dry_run),
+                gfc::frame_timer { ch::seconds(params.interval_length) });
+        }) |
+        schedule::let([&](std::pair<gfc::Curve, gfc::frame_timer>& args) {
+            auto& [apply_curve, timer] = args;
+            return schedule::defer([&] {
+                       return schedule::schedule_after(
+                                  io_context.get_scheduler(),
+                                  timer.duration_until_next_frame()) |
+                              schedule::then([&] {
+                                  timer.consume_frame();
+                                  apply_curve();
+                              });
+                   }) |
+                   schedule::repeat() |
+                   schedule::stop_when(event_source.async_wait_for_event());
+        });
 
     gfc::log(gfc::LogLevel::info, "Running");
-    ex::sync_wait(std::move(work));
+    schedule::sync_wait(std::move(work));
     gfc::log(gfc::LogLevel::info, "Stopped");
 }
 

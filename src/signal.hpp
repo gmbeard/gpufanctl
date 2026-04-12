@@ -7,5 +7,6 @@ namespace gfc
 {
 auto block_signals(std::initializer_list<int>) -> void;
 
+auto setup_signal_handler(std::initializer_list<int>) -> void;
 } // namespace gfc
 #endif // GPUFANCTL_SIGNAL_HPP_INCLUDED

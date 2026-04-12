@@ -1,0 +1,393 @@
+{
+    "version": 10,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 31,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "common-flags",
+            "hidden": true,
+            "environment": {
+                "COMMON_CMAKE_CXX_FLAGS": "-Wall -Werror -Wextra -Wconversion -Wshadow -Wno-maybe-uninitialized"
+            }
+        },
+        {
+            "name": "common-clang-flags",
+            "hidden": true,
+            "environment": {
+                "COMMON_CMAKE_CXX_FLAGS": "-Wall -Werror -Wextra -Wconversion -Wshadow"
+            }
+        },
+        {
+            "name": "asan-ubsan-flags",
+            "hidden": true,
+            "environment": {
+                "ASAN_UBSAN_CMAKE_CXX_FLAGS": "-fsanitize=address,undefined"
+            }
+        },
+        {
+            "name": "tsan-flags",
+            "hidden": true,
+            "environment": {
+                "TSAN_CMAKE_CXX_FLAGS": "-fsanitize=thread"
+            }
+        },
+        {
+            "name": "msan-flags",
+            "hidden": true,
+            "environment": {
+                "MSAN_CMAKE_CXX_FLAGS": "-fno-omit-frame-pointer -fPIE -fsanitize=memory -fsanitize-memory-track-origins",
+                "MSAN_CMAKE_SHARED_LINKER_FLAGS": "-pie -fsanitize=memory",
+                "MSAN_CMAKE_EXE_LINKER_FLAGS": "-pie -fsanitize=memory"
+            }
+        },
+        {
+            "name": "default",
+            "inherits": "common-flags",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build",
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+                "CMAKE_CXX_STANDARD": "20"
+            }
+        },
+        {
+            "name": "default-clang",
+            "inherits": "common-clang-flags",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build",
+            "environment": {
+                "CC": "clang",
+                "CXX": "clang++"
+            },
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+                "CMAKE_CXX_STANDARD": "20"
+            }
+        },
+        {
+            "name": "release",
+            "inherits": "default",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "asan-ubsan",
+            "inherits": ["default", "common-flags", "asan-ubsan-flags"],
+            "cacheVariables": {
+                "CMAKE_CXX_FLAGS": "$env{COMMON_CMAKE_CXX_FLAGS} $env{ASAN_UBSAN_CMAKE_CXX_FLAGS}",
+                "CMAKE_SHARED_LINKER_FLAGS": "$env{ASAN_UBSAN_CMAKE_CXX_FLAGS}",
+                "CMAKE_EXE_LINKER_FLAGS": "$env{ASAN_UBSAN_CMAKE_CXX_FLAGS}"
+            }
+        },
+        {
+            "name": "asan-ubsan-release",
+            "inherits": ["release", "asan-ubsan"]
+        },
+        {
+            "name": "tsan",
+            "inherits": ["default", "common-flags", "tsan-flags"],
+            "cacheVariables": {
+                "CMAKE_CXX_FLAGS": "$env{COMMON_CMAKE_CXX_FLAGS} $env{TSAN_CMAKE_CXX_FLAGS}",
+                "CMAKE_SHARED_LINKER_FLAGS": "$env{TSAN_CMAKE_CXX_FLAGS}",
+                "CMAKE_EXE_LINKER_FLAGS": "$env{TSAN_CMAKE_CXX_FLAGS}"
+            }
+        },
+        {
+            "name": "tsan-release",
+            "inherits": ["release", "tsan"]
+        },
+        {
+            "name": "msan",
+            "inherits": ["default-clang", "common-clang-flags", "msan-flags"],
+            "cacheVariables": {
+                "CMAKE_CXX_FLAGS": "$env{COMMON_CMAKE_CXX_FLAGS} $env{MSAN_CMAKE_CXX_FLAGS}",
+                "CMAKE_SHARED_LINKER_FLAGS": "$env{MSAN_CMAKE_SHARED_LINKER_FLAGS}",
+                "CMAKE_EXE_LINKER_FLAGS": "$env{MSAN_CMAKE_EXE_LINKER_FLAGS}"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "default",
+            "configurePreset": "default"
+        },
+        {
+            "name": "examples",
+            "configurePreset": "default",
+            "targets": [ "schedule.examples" ]
+        },
+        {
+            "name": "examples-release",
+            "configurePreset": "release",
+            "targets": [ "schedule.examples" ]
+        },
+        {
+            "name": "examples-asan-ubsan",
+            "configurePreset": "asan-ubsan",
+            "targets": [ "schedule.examples" ]
+        },
+        {
+            "name": "examples-asan-ubsan-release",
+            "configurePreset": "asan-ubsan-release",
+            "targets": [ "schedule.examples" ]
+        },
+        {
+            "name": "examples-tsan",
+            "configurePreset": "tsan",
+            "targets": [ "schedule.examples" ]
+        },
+        {
+            "name": "examples-tsan-release",
+            "configurePreset": "tsan-release",
+            "targets": [ "schedule.examples" ]
+        },
+        {
+            "name": "default-tests",
+            "configurePreset": "default",
+            "targets": [ "schedule.tests" ]
+        },
+        {
+            "name": "default-tests-release",
+            "configurePreset": "release",
+            "targets": [ "schedule.tests" ]
+        },
+        {
+            "name": "asan-ubsan",
+            "inherits": "default",
+            "configurePreset": "asan-ubsan"
+        },
+        {
+            "name": "asan-ubsan-tests",
+            "inherits": "default",
+            "configurePreset": "asan-ubsan",
+            "targets": [ "schedule.tests" ]
+        },
+        {
+            "name": "asan-ubsan-release",
+            "inherits": "default",
+            "configurePreset": "asan-ubsan-release"
+        },
+        {
+            "name": "asan-ubsan-tests-release",
+            "inherits": "default",
+            "configurePreset": "asan-ubsan-release",
+            "targets": [ "schedule.tests" ]
+        },
+        {
+            "name": "tsan",
+            "inherits": "default",
+            "configurePreset": "tsan"
+        },
+        {
+            "name": "tsan-tests",
+            "inherits": "default",
+            "configurePreset": "tsan",
+            "targets": [ "schedule.tests" ]
+        },
+        {
+            "name": "tsan-release",
+            "inherits": "default",
+            "configurePreset": "tsan-release"
+        },
+        {
+            "name": "tsan-tests-release",
+            "inherits": "default",
+            "configurePreset": "tsan-release",
+            "targets": [ "schedule.tests" ]
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "default",
+            "configurePreset": "default",
+            "output": {
+                "outputOnFailure": true
+            }
+        },
+        {
+            "name": "release",
+            "inherits": "default",
+            "configurePreset": "release"
+        },
+        {
+            "name": "asan-ubsan",
+            "inherits": "default",
+            "configurePreset": "asan-ubsan"
+        },
+        {
+            "name": "asan-ubsan-release",
+            "inherits": "default",
+            "configurePreset": "asan-ubsan-release"
+        },
+        {
+            "name": "tsan",
+            "inherits": "default",
+            "configurePreset": "tsan"
+        },
+        {
+            "name": "tsan-release",
+            "inherits": "default",
+            "configurePreset": "tsan-release"
+        }
+    ],
+    "workflowPresets": [
+        {
+            "name": "default",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "default"
+                },
+                {
+                    "type": "build",
+                    "name": "default-tests"
+                },
+                {
+                    "type": "test",
+                    "name": "default"
+                }
+            ]
+        },
+        {
+            "name": "default-release",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "release"
+                },
+                {
+                    "type": "build",
+                    "name": "default-tests-release"
+                },
+                {
+                    "type": "test",
+                    "name": "release"
+                }
+            ]
+        },
+        {
+            "name": "asan-ubsan",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "asan-ubsan"
+                },
+                {
+                    "type": "build",
+                    "name": "asan-ubsan-tests"
+                },
+                {
+                    "type": "test",
+                    "name": "asan-ubsan"
+                }
+            ]
+        },
+        {
+            "name": "asan-ubsan-release",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "asan-ubsan-release"
+                },
+                {
+                    "type": "build",
+                    "name": "asan-ubsan-tests-release"
+                },
+                {
+                    "type": "test",
+                    "name": "asan-ubsan-release"
+                }
+            ]
+        },
+        {
+            "name": "tsan",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "tsan"
+                },
+                {
+                    "type": "build",
+                    "name": "tsan-tests"
+                },
+                {
+                    "type": "test",
+                    "name": "tsan"
+                }
+            ]
+        },
+        {
+            "name": "tsan-release",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "tsan-release"
+                },
+                {
+                    "type": "build",
+                    "name": "tsan-tests-release"
+                },
+                {
+                    "type": "test",
+                    "name": "tsan-release"
+                }
+            ]
+        },
+        {
+            "name": "examples",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "default"
+                },
+                {
+                    "type": "build",
+                    "name": "examples"
+                }
+            ]
+        },
+        {
+            "name": "examples-release",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "release"
+                },
+                {
+                    "type": "build",
+                    "name": "examples-release"
+                }
+            ]
+        },
+        {
+            "name": "examples-asan-ubsan",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "asan-ubsan"
+                },
+                {
+                    "type": "build",
+                    "name": "examples-asan-ubsan"
+                }
+            ]
+        },
+        {
+            "name": "examples-tsan",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "tsan"
+                },
+                {
+                    "type": "build",
+                    "name": "examples-tsan"
+                }
+            ]
+        }
+    ]
+}

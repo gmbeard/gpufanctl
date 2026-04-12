@@ -32,6 +32,9 @@ auto get_flag_description(Flags flag) noexcept -> char const*
         return R"#(Required when setting the --max-temperature above the default value)#";
     case Flags::persistence_mode:
         return R"#(Enable persistence mode)#";
+    case Flags::dry_run:
+        return R"#(Temperature detection and curve calculation occurs, but no fan speed adjustments
+            are made. This setting implies --no-pidfile)#";
     }
 
     return "";
